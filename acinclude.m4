@@ -111,7 +111,7 @@ dnl check for nonbuggy libtool -prefer-non-pic
 AC_DEFUN([AC_LIBTOOL_NON_PIC],
     [AC_MSG_CHECKING([if libtool supports -prefer-non-pic flag])
     mkdir ac_test_libtool; cd ac_test_libtool; ac_cv_libtool_non_pic=no
-    echo "int g (int i); int f (int i) {return g (i);}" >f.c
+    echo "int g (int i); static int h (int i) {return g (i);} int f (int i) {return h (i);}" >f.c
     echo "int (* hook) (int) = 0; int g (int i) {if (hook) i = hook (i); return i + 1;}" >g.c
     ../libtool --mode=compile $CC $CFLAGS -prefer-non-pic \
 		-c f.c >/dev/null 2>&1 && \
@@ -168,7 +168,7 @@ dnl Remember, if the system already had a valid <stdint.h>, the generated
 dnl file will include it directly. No need for fuzzy HAVE_STDINT_H things...
 dnl
 dnl @, (status: used on new platforms) (see http://ac-archive.sf.net/gstdint/)
-dnl @version $Id: acinclude.m4,v 1.16 2003/10/25 19:09:02 walken Exp $
+dnl @version $Id: acinclude.m4,v 1.16.2.1 2006/02/14 14:22:16 sammy Exp $
 dnl @author  Guido Draheim <guidod@gmx.de> 
 
 AC_DEFUN([AX_CREATE_STDINT_H],

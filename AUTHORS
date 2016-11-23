@@ -2,8 +2,11 @@ Aaron Holtzman <aholtzma@ess.engr.uvic.ca> started the project and
 made the initial working implementation.
 
 Michel Lespinasse <walken@zoy.org> did major changes for speed and
-mpeg conformance and is the current maintainer. Most of the current
-code was (re)written by him.
+mpeg conformance and has been the maintainer for a long time. Most
+of the current code was (re)written by him.
+
+Sam Hocevar <sam@zoy.org> and Christophe Massiot <massiot@via.ecp.fr>
+are the current maintainers.
 
 Other contributors include:
 	Bruno Barreyra <barreyra@ufl.edu> - build fixes

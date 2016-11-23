@@ -197,6 +197,10 @@ static void * create_shm (x11_instance_t * instance, int size)
     if (shmerror) {
     error:
 	fprintf (stderr, "cannot create shared memory\n");
+	if (instance->shminfo.shmid != -1) {
+	    shmdt (instance->shminfo.shmaddr);
+	    shmctl (instance->shminfo.shmid, IPC_RMID, 0);
+	}
 	return NULL;
     }
 

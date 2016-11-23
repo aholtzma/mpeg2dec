@@ -25,7 +25,7 @@
 #define MPEG2_H
 
 #define MPEG2_VERSION(a,b,c) (((a)<<16)|((b)<<8)|(c))
-#define MPEG2_RELEASE MPEG2_VERSION (0, 4, 0)	/* 0.4.0 */
+#define MPEG2_RELEASE MPEG2_VERSION (0, 4, 1)	/* 0.4.1 */
 
 #define SEQ_FLAG_MPEG2 1
 #define SEQ_FLAG_CONSTRAINED_PARAMETERS 2

@@ -3,6 +3,7 @@
  * Copyright (C) 2003      Regis Duchesne <hpreg@zoy.org>
  * Copyright (C) 2000-2003 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 2006      Sam Hocevar <sam@zoy.org>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
  * See http://libmpeg2.sourceforge.net/ for updates.
@@ -66,6 +67,7 @@ static void save_pgm (int width, int height,
 static void sample3 (FILE * mpgfile)
 {
 #define BUFFER_SIZE 4096
+#define ALIGN_16(p) ((void *)(((uintptr_t)(p) + 15) & ~((uintptr_t)15)))
     uint8_t buffer[BUFFER_SIZE];
     mpeg2dec_t * decoder;
     const mpeg2_info_t * info;
@@ -73,6 +75,7 @@ static void sample3 (FILE * mpgfile)
     mpeg2_state_t state;
     size_t size;
     int framenum = 0;
+    uint8_t * mbuf[3][3];
     uint8_t * fbuf[3][3];
     int i, j;
 
@@ -94,16 +97,18 @@ static void sample3 (FILE * mpgfile)
 	    break;
 	case STATE_SEQUENCE:
 	    for (i = 0; i < 3; i++) {
-		fbuf[i][0] = (uint8_t *) malloc (sequence->width *
-						 sequence->height);
-		fbuf[i][1] = (uint8_t *) malloc (sequence->chroma_width * 
-						 sequence->chroma_height);
-		fbuf[i][2] = (uint8_t *) malloc (sequence->chroma_width *  
-						 sequence->chroma_height);
-		if (!fbuf[i][0] || !fbuf[i][1] || !fbuf[i][2]) {
+		mbuf[i][0] = (uint8_t *) malloc (sequence->width *
+						 sequence->height + 15);
+		mbuf[i][1] = (uint8_t *) malloc (sequence->chroma_width * 
+						 sequence->chroma_height + 15);
+		mbuf[i][2] = (uint8_t *) malloc (sequence->chroma_width *  
+						 sequence->chroma_height + 15);
+		if (!mbuf[i][0] || !mbuf[i][1] || !mbuf[i][2]) {
 		    fprintf (stderr, "Could not allocate an output buffer.\n");
 		    exit (1);
 		}
+		for (j = 0; j < 3; j++)
+		    fbuf[i][j] = ALIGN_16 (mbuf[i][j]);
 		mpeg2_set_buf (decoder, fbuf[i], NULL);
 	    }
 	    break;
@@ -117,7 +122,7 @@ static void sample3 (FILE * mpgfile)
 	    if (state != STATE_SLICE)
 		for (i = 0; i < 3; i++)
 		    for (j = 0; j < 3; j++)
-			free (fbuf[i][j]);
+			free (mbuf[i][j]);
 	    break;
 	default:
 	    break;

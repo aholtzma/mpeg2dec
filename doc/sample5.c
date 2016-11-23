@@ -3,6 +3,7 @@
  * Copyright (C) 2003      Regis Duchesne <hpreg@zoy.org>
  * Copyright (C) 2000-2003 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 2006      Sam Hocevar <sam@zoy.org>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
  * See http://libmpeg2.sourceforge.net/ for updates.
@@ -64,6 +65,7 @@ static void save_pgm (int width, int height,
 }
 
 static struct fbuf_s {
+    uint8_t * mbuf[3];
     uint8_t * yuv[3];
     int used;
 } fbuf[3];
@@ -84,6 +86,7 @@ static struct fbuf_s * get_fbuf (void)
 static void sample5 (FILE * mpgfile)
 {
 #define BUFFER_SIZE 4096
+#define ALIGN_16(p) ((void *)(((uintptr_t)(p) + 15) & ~((uintptr_t)15)))
     uint8_t buffer[BUFFER_SIZE];
     mpeg2dec_t * decoder;
     const mpeg2_info_t * info;
@@ -113,16 +116,18 @@ static void sample5 (FILE * mpgfile)
 	case STATE_SEQUENCE:
 	    mpeg2_custom_fbuf (decoder, 1);
 	    for (i = 0; i < 3; i++) {
-		fbuf[i].yuv[0] = (uint8_t *) malloc (sequence->width *
-						     sequence->height);
-		fbuf[i].yuv[1] = (uint8_t *) malloc (sequence->chroma_width * 
-						     sequence->chroma_height);
-		fbuf[i].yuv[2] = (uint8_t *) malloc (sequence->chroma_width *  
-						     sequence->chroma_height);
-		if (!fbuf[i].yuv[0] || !fbuf[i].yuv[1] || !fbuf[i].yuv[2]) {
+		fbuf[i].mbuf[0] = (uint8_t *) malloc (sequence->width *
+						 sequence->height + 15);
+		fbuf[i].mbuf[1] = (uint8_t *) malloc (sequence->chroma_width * 
+						 sequence->chroma_height + 15);
+		fbuf[i].mbuf[2] = (uint8_t *) malloc (sequence->chroma_width *  
+						 sequence->chroma_height + 15);
+		if (!fbuf[i].mbuf[0] || !fbuf[i].mbuf[1] || !fbuf[i].mbuf[2]) {
 		    fprintf (stderr, "Could not allocate an output buffer.\n");
 		    exit (1);
 		}
+		for (j = 0; j < 3; j++)
+		    fbuf[i].yuv[j] = ALIGN_16 (fbuf[i].mbuf[j]);
 		fbuf[i].used = 0;
 	    }
 	    for (i = 0; i < 2; i++) {
@@ -146,7 +151,7 @@ static void sample5 (FILE * mpgfile)
 	    if (state != STATE_SLICE)
 		for (i = 0; i < 3; i++)
 		    for (j = 0; j < 3; j++)
-			free (fbuf[i].yuv[j]);
+			free (fbuf[i].mbuf[j]);
 	    break;
 	default:
 	    break;

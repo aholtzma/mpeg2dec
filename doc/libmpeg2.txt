@@ -1,12 +1,12 @@
 The documentation is currently a mess. Sorry about that, hope to write
-something better for the 0.4.1 release.
+something better for the 0.5.0 release.
 
 
-For people migrating code from 0.3.x to 0.4.0, the biggest thing to
+For people migrating code from 0.3.x to 0.4.x, the biggest thing to
 note is that mpeg2_parse now returns a new state STATE_BUFFER when it
 needs more data. Version 0.3.x used to return a -1 constant for this -
 please update your code to replace that -1 with STATE_BUFFER. Otherwise
-0.3.x code should mostly work with 0.4.0, hopefully.
+0.3.x code should mostly work with 0.4.x, hopefully.
 
 
 For people new to libmpeg2, it's best to start by looking at
@@ -63,7 +63,7 @@ first byte of its picture start code.
 
 
 That's all I can think of - sorry for the lack of proper
-documentation, I'll try to help this before the 0.4.1 release.
+documentation, I'll try to help this before the 0.5.0 release.
 
 
 

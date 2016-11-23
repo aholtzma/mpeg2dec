@@ -1,3 +1,23 @@
+mpeg2dec-0.4.1 Wed Feb 15 17:08:28 CET 2006
+
+This is a bugfix release. It is completely API and ABI compatible with
+version 0.4.0.
+
+The build system now supports newer versions of the autotools and can
+find them in weird places on FreeBSD and OS X systems. We also support
+x86 accelerations on the AMD64 CPU, including on FreeBSD. The AltiVec
+features are now better detected.
+
+Peter Gubanov found a bug in the 4:4:4 chroma handling, Nicolas Joly
+found a memory leak in the Xshm code on remote displays and Roberto
+Huelga found alignment issues in the sample3 and sample5 examples.
+Gildas Bazin contributed a patch for more tolerance for invalid sequence
+display extensions.
+
+There are also two new maintainers to help Michel in his task: Sam
+Hocevar and Christophe Massiot, from the VideoLAN project.
+
+
 mpeg2dec-0.4.0 Tue Dec 23 03:04:35 PST 2003 
 
 Jeez, it's been way too long since the last release.
