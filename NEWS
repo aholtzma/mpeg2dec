@@ -1,3 +1,18 @@
+mpeg2dec-0.5.0 Fri Jun 11 23:42:12 CET 2008
+
+This release brings libmpeg2 up to date with recent contributions,
+compilers and systems.
+
+New optimizations have been provided for SSE2 and ARM instruction sets,
+while a lot of warnings triggered by recent compiler changes have been
+fixed.
+
+A new function has been added to guess the aspect ratio of streams where
+it is not properly coded. Also it is now possible to retrieve the value
+of the MPEG-2 repeat_first_field flag, and to be notified when the
+sequence header of a stream changes (eg. aspect ratio on-the-fly changes).
+
+
 mpeg2dec-0.4.1 Wed Feb 15 17:08:28 CET 2006
 
 This is a bugfix release. It is completely API and ABI compatible with

@@ -445,7 +445,7 @@ static void get_intra_block_B14 (mpeg2_decoder_t * const decoder,
 	break;	/* illegal, check needed to avoid buffer overflow */
     }
     dest[63] ^= mismatch & 16;
-    DUMPBITS (bit_buf, bits, 2);	/* dump end of block code */
+    DUMPBITS (bit_buf, bits, tab->len);	/* dump end of block code */
     decoder->bitstream_buf = bit_buf;
     decoder->bitstream_bits = bits;
     decoder->bitstream_ptr = bit_ptr;
@@ -503,7 +503,7 @@ static void get_intra_block_B15 (mpeg2_decoder_t * const decoder,
 	    } else {
 
 		/* end of block. I commented out this code because if we */
-		/* dont exit here we will still exit at the later test :) */
+		/* do not exit here we will still exit at the later test :) */
 
 		/* if (i >= 128) break;	*/	/* end of block */
 
@@ -555,7 +555,7 @@ static void get_intra_block_B15 (mpeg2_decoder_t * const decoder,
 	break;	/* illegal, check needed to avoid buffer overflow */
     }
     dest[63] ^= mismatch & 16;
-    DUMPBITS (bit_buf, bits, 4);	/* dump end of block code */
+    DUMPBITS (bit_buf, bits, tab->len);	/* dump end of block code */
     decoder->bitstream_buf = bit_buf;
     decoder->bitstream_bits = bits;
     decoder->bitstream_ptr = bit_ptr;
@@ -676,7 +676,7 @@ static int get_non_intra_block (mpeg2_decoder_t * const decoder,
 	break;	/* illegal, check needed to avoid buffer overflow */
     }
     dest[63] ^= mismatch & 16;
-    DUMPBITS (bit_buf, bits, 2);	/* dump end of block code */
+    DUMPBITS (bit_buf, bits, tab->len);	/* dump end of block code */
     decoder->bitstream_buf = bit_buf;
     decoder->bitstream_bits = bits;
     decoder->bitstream_ptr = bit_ptr;
@@ -794,7 +794,7 @@ static void get_mpeg1_intra_block (mpeg2_decoder_t * const decoder)
 	}
 	break;	/* illegal, check needed to avoid buffer overflow */
     }
-    DUMPBITS (bit_buf, bits, 2);	/* dump end of block code */
+    DUMPBITS (bit_buf, bits, tab->len);	/* dump end of block code */
     decoder->bitstream_buf = bit_buf;
     decoder->bitstream_bits = bits;
     decoder->bitstream_ptr = bit_ptr;
@@ -921,7 +921,7 @@ static int get_mpeg1_non_intra_block (mpeg2_decoder_t * const decoder)
 	}
 	break;	/* illegal, check needed to avoid buffer overflow */
     }
-    DUMPBITS (bit_buf, bits, 2);	/* dump end of block code */
+    DUMPBITS (bit_buf, bits, tab->len);	/* dump end of block code */
     decoder->bitstream_buf = bit_buf;
     decoder->bitstream_bits = bits;
     decoder->bitstream_ptr = bit_ptr;
@@ -1587,6 +1587,16 @@ do {									\
     }									\
 } while (0)
 
+/**
+ * Dummy motion decoding function, to avoid calling NULL in
+ * case of malformed streams.
+ */
+static void motion_dummy (mpeg2_decoder_t * const decoder,
+                          motion_t * const motion,
+                          mpeg2_mc_fct * const * const table)
+{
+}
+
 void mpeg2_init_fbuf (mpeg2_decoder_t * decoder, uint8_t * current_fbuf[3],
 		      uint8_t * forward_fbuf[3], uint8_t * backward_fbuf[3])
 {
@@ -1644,7 +1654,9 @@ void mpeg2_init_fbuf (mpeg2_decoder_t * decoder, uint8_t * current_fbuf[3],
 
     if (decoder->mpeg1) {
 	decoder->motion_parser[0] = motion_zero_420;
-	decoder->motion_parser[MC_FRAME] = motion_mp1;
+        decoder->motion_parser[MC_FIELD] = motion_dummy;
+ 	decoder->motion_parser[MC_FRAME] = motion_mp1;
+        decoder->motion_parser[MC_DMV] = motion_dummy;
 	decoder->motion_parser[4] = motion_reuse_420;
     } else if (decoder->picture_structure == FRAME_PICTURE) {
 	if (decoder->chroma_format == 0) {
@@ -1868,6 +1880,14 @@ void mpeg2_slice (mpeg2_decoder_t * const decoder, const int code,
 	} else {
 
 	    motion_parser_t * parser;
+
+	    if (   ((macroblock_modes >> MOTION_TYPE_SHIFT) < 0)
+                || ((macroblock_modes >> MOTION_TYPE_SHIFT) >=
+                    (int)(sizeof(decoder->motion_parser) 
+                          / sizeof(decoder->motion_parser[0])))
+	       ) {
+		break; // Illegal !
+	    }
 
 	    parser =
 		decoder->motion_parser[macroblock_modes >> MOTION_TYPE_SHIFT];

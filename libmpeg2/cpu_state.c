@@ -29,14 +29,14 @@
 #include "mpeg2.h"
 #include "attributes.h"
 #include "mpeg2_internal.h"
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 #include "mmx.h"
 #endif
 
 void (* mpeg2_cpu_state_save) (cpu_state_t * state) = NULL;
 void (* mpeg2_cpu_state_restore) (cpu_state_t * state) = NULL;
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static void state_restore_mmx (cpu_state_t * state)
 {
     emms ();
@@ -44,18 +44,18 @@ static void state_restore_mmx (cpu_state_t * state)
 #endif
 
 #ifdef ARCH_PPC
-#ifdef HAVE_ALTIVEC_H	/* gnu */
-#define LI(a,b) "li " #a "," #b "\n\t"
-#define STVX0(a,b,c) "stvx " #a ",0," #c "\n\t"
-#define STVX(a,b,c) "stvx " #a "," #b "," #c "\n\t"
-#define LVX0(a,b,c) "lvx " #a ",0," #c "\n\t"
-#define LVX(a,b,c) "lvx " #a "," #b "," #c "\n\t"
-#else			/* apple */
+#if defined(__APPLE_CC__)	/* apple */
 #define LI(a,b) "li r" #a "," #b "\n\t"
 #define STVX0(a,b,c) "stvx v" #a ",0,r" #c "\n\t"
 #define STVX(a,b,c) "stvx v" #a ",r" #b ",r" #c "\n\t"
 #define LVX0(a,b,c) "lvx v" #a ",0,r" #c "\n\t"
 #define LVX(a,b,c) "lvx v" #a ",r" #b ",r" #c "\n\t"
+#else				/* gnu */
+#define LI(a,b) "li " #a "," #b "\n\t"
+#define STVX0(a,b,c) "stvx " #a ",0," #c "\n\t"
+#define STVX(a,b,c) "stvx " #a "," #b "," #c "\n\t"
+#define LVX0(a,b,c) "lvx " #a ",0," #c "\n\t"
+#define LVX(a,b,c) "lvx " #a "," #b "," #c "\n\t"
 #endif
 
 static void state_save_altivec (cpu_state_t * state)
@@ -115,7 +115,7 @@ static void state_restore_altivec (cpu_state_t * state)
 
 void mpeg2_cpu_state_init (uint32_t accel)
 {
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
     if (accel & MPEG2_ACCEL_X86_MMX) {
 	mpeg2_cpu_state_restore = state_restore_mmx;
     }

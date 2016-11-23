@@ -1,4 +1,4 @@
-#basedir ../../mpeg2dec-streams
+#basedir ../../streams
 
 teracom/teracom_vlc4		# OK - test all VLC tables
 att/att_mismatch		# OK - IDCT accuracy
@@ -66,6 +66,7 @@ twilight_zone/walken/mpeg1_stuffing		# OK - mpeg1 macroblk stuffing
 twilight_zone/walken/mpeg1_start_slice		# IGNORE - bad slice start mba
 twilight_zone/walken/mpeg1_slice		# IGNORE - general slice struct
 twilight_zone/walken/repeat_sequence_bitrate	# OK - variable bitrate value
+twilight_zone/walken/repeat_sequence_aspect	# OK - variable aspect ratio
 twilight_zone/walken/progressive_12x12		# OK - progressive sequence
 twilight_zone/walken/interlaced_12x12		# OK - nonprogressive sequence
 twilight_zone/walken/very_high			# OK - very high picture

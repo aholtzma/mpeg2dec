@@ -200,7 +200,7 @@ static inline void rgb16 (void * const _id, uint8_t * const * src,
     uint8_t * py, * pu, * pv;
     int i, j;
 
-    dst = id->rgb_ptr + id->rgb_stride * v_offset;
+    dst = id->rgb_ptr + id->rgb_slice * v_offset;
     py = src[0];	pu = src[1];	pv = src[2];
 
     i = 16;
@@ -217,7 +217,12 @@ static inline void rgb16 (void * const _id, uint8_t * const * src,
 
 	dst += id->rgb_increm;
 	py += id->y_increm;
-	if (! (--i & id->chroma420)) {
+	if (--i == id->field) {
+	    dst = id->rgb_ptr + id->rgb_slice * (v_offset + 1);
+	    py = src[0] + id->y_stride_frame;
+	    pu = src[1] + id->uv_stride_frame;
+	    pv = src[2] + id->uv_stride_frame;
+	} else if (! (i & id->chroma420)) {
 	    pu += id->uv_increm;
 	    pv += id->uv_increm;
 	} else {
@@ -235,7 +240,7 @@ static inline void argb32 (void * const _id, uint8_t * const * src,
     uint8_t * py, * pu, * pv;
     int i, j;
 
-    dst = id->rgb_ptr + id->rgb_stride * v_offset;
+    dst = id->rgb_ptr + id->rgb_slice * v_offset;
     py = src[0];	pu = src[1];	pv = src[2];
 
     i = 16;
@@ -252,7 +257,12 @@ static inline void argb32 (void * const _id, uint8_t * const * src,
 
 	dst += id->rgb_increm;
 	py += id->y_increm;
-	if (! (--i & id->chroma420)) {
+	if (--i == id->field) {
+	    dst = id->rgb_ptr + id->rgb_slice * (v_offset + 1);
+	    py = src[0] + id->y_stride_frame;
+	    pu = src[1] + id->uv_stride_frame;
+	    pv = src[2] + id->uv_stride_frame;
+	} else if (! (i & id->chroma420)) {
 	    pu += id->uv_increm;
 	    pv += id->uv_increm;
 	} else {

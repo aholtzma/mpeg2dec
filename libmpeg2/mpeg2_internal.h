@@ -21,6 +21,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#ifndef LIBMPEG2_MPEG2_INTERNAL_H
+#define LIBMPEG2_MPEG2_INTERNAL_H
+
+#define STATE_INTERNAL_NORETURN ((mpeg2_state_t)-1)
+
 /* macroblock modes */
 #define MACROBLOCK_INTRA 1
 #define MACROBLOCK_PATTERN 2
@@ -144,6 +149,9 @@ struct mpeg2_decoder_s {
     int second_field;
 
     int mpeg1;
+
+    /* XXX: stuff due to xine shit */
+    int8_t q_scale_type;
 };
 
 typedef struct {
@@ -211,7 +219,8 @@ struct mpeg2dec_s {
     int16_t display_offset_x, display_offset_y;
 
     int copy_matrix;
-    int8_t q_scale_type, scaled[4];
+    int8_t scaled[4]; /* XXX: MOVED */
+    //int8_t q_scale_type, scaled[4];
     uint8_t quantizer_matrix[4][64];
     uint8_t new_quantizer_matrix[4][64];
 };
@@ -224,7 +233,7 @@ typedef struct {
 } cpu_state_t;
 
 /* cpu_accel.c */
-uint32_t mpeg2_detect_accel (void);
+uint32_t mpeg2_detect_accel (uint32_t accel);
 
 /* cpu_state.c */
 void mpeg2_cpu_state_init (uint32_t accel);
@@ -250,9 +259,14 @@ mpeg2_state_t mpeg2_header_end (mpeg2dec_t * mpeg2dec);
 void mpeg2_set_fbuf (mpeg2dec_t * mpeg2dec, int b_type);
 
 /* idct.c */
-void mpeg2_idct_init (uint32_t accel);
+extern void mpeg2_idct_init (uint32_t accel);
+extern uint8_t mpeg2_scan_norm[64];
+extern uint8_t mpeg2_scan_alt[64];
 
 /* idct_mmx.c */
+void mpeg2_idct_copy_sse2 (int16_t * block, uint8_t * dest, int stride);
+void mpeg2_idct_add_sse2 (int last, int16_t * block,
+			  uint8_t * dest, int stride);
 void mpeg2_idct_copy_mmxext (int16_t * block, uint8_t * dest, int stride);
 void mpeg2_idct_add_mmxext (int last, int16_t * block,
 			    uint8_t * dest, int stride);
@@ -298,3 +312,6 @@ extern mpeg2_mc_t mpeg2_mc_3dnow;
 extern mpeg2_mc_t mpeg2_mc_altivec;
 extern mpeg2_mc_t mpeg2_mc_alpha;
 extern mpeg2_mc_t mpeg2_mc_vis;
+extern mpeg2_mc_t mpeg2_mc_arm;
+
+#endif /* LIBMPEG2_MPEG2_INTERNAL_H */

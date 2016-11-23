@@ -29,6 +29,9 @@
 
 #include "mpeg2.h"
 
+void dump_state (FILE * f, mpeg2_state_t state, const mpeg2_info_t * info,
+		 int offset, int verbose);
+
 static struct {
     const mpeg2_sequence_t * ptr;
     mpeg2_sequence_t value;
@@ -209,22 +212,27 @@ static void pic_code_del (const mpeg2_picture_t * pic)
 void dump_state (FILE * f, mpeg2_state_t state, const mpeg2_info_t * info,
 		 int offset, int verbose)
 {
-    static char * state_name[] = {
-	"BUFFER", "SEQUENCE", "SEQUENCE_REPEATED", "GOP",
+    static const char * state_name[] = {
+	"BUFFER", "SEQUENCE", "SEQUENCE_REPEATED","GOP",
 	"PICTURE", "SLICE_1ST", "PICTURE_2ND", "SLICE", "END",
-	"INVALID", "INVALID_END"
+	"INVALID", "INVALID_END", "SEQUENCE_MODIFIED"
     };
-    static char * profile[] = { "HP", "Spatial", "SNR", "MP", "SP" };
-    static char * level[] = { "HL", "H-14", "ML", "LL" };
-    static char * profile2[] = { "422@HL", NULL, NULL, "422@ML",
+    static const char * profile[] = { "HP", "Spatial", "SNR", "MP", "SP" };
+    static const char * level[] = { "HL", "H-14", "ML", "LL" };
+    static const char * profile2[] = { "422@HL", NULL, NULL, "422@ML",
 				 NULL, NULL, NULL, NULL, "MV@HL",
 				 "MV@H-14", NULL, "MV@ML", "MV@LL" };
-    static char * video_fmt[] = { "COMPONENT", "PAL", "NTSC", "SECAM", "MAC"};
-    static char coding_type[] = { '0', 'I', 'P', 'B', 'D', '5', '6', '7'};
+    static const char * video_fmt[] = { "COMPONENT", "PAL", "NTSC", "SECAM", "MAC"};
+    static const char coding_type[] = { '0', 'I', 'P', 'B', 'D', '5', '6', '7'};
+    static const char * colour[] = { NULL, "BT.709", "UNSPECIFIED", NULL,
+			       "BT.470-2/M", "BT.470-2/B,G",
+			       "SMPTE170M", "SMPTE240M", "LINEAR" };
+    static const char * colour3[] = { NULL, "BT.709", "UNSPEC_COLORS", NULL, NULL,
+				"BT.470-2/B,G", "SMPTE170M", "SMPTE240M" };
     const mpeg2_sequence_t * seq = info->sequence;
     const mpeg2_gop_t * gop = info->gop;
     const mpeg2_picture_t * pic;
-    unsigned int i, nb_pos;
+    unsigned int i, nb_pos, pixel_width, pixel_height;
 
     if (state == STATE_BUFFER &&
 	sequence_match (seq) && gop_match (gop) &&
@@ -247,11 +255,17 @@ void dump_state (FILE * f, mpeg2_state_t state, const mpeg2_info_t * info,
 	case STATE_PICTURE_2ND:
 	    pic_code_add (info->current_picture_2nd, f);
 	    break;
+	case STATE_SEQUENCE_MODIFIED:
+	    if (last_sequence.value.width != seq->width ||
+		last_sequence.value.height != seq->height ||
+		last_sequence.value.chroma_width != seq->chroma_width ||
+		last_sequence.value.chroma_height != seq->chroma_height ||
+		((last_sequence.value.flags & SEQ_FLAG_LOW_DELAY) !=
+		 (seq->flags & SEQ_FLAG_LOW_DELAY)))
+		fprintf (f, " (INVALID)");
 	case STATE_SEQUENCE:
 	    sequence_save (seq);
 	    break;
-	case STATE_SEQUENCE_REPEATED:
-	    last_sequence.value.byte_rate = seq->byte_rate;
 	    break;
 	case STATE_GOP:
 	    gop_save (gop);
@@ -281,6 +295,7 @@ void dump_state (FILE * f, mpeg2_state_t state, const mpeg2_info_t * info,
     switch (state) {
     case STATE_SEQUENCE:
     case STATE_SEQUENCE_REPEATED:
+    case STATE_SEQUENCE_MODIFIED:
 	if (seq->flags & SEQ_FLAG_MPEG2)
 	    fprintf (f, " MPEG2");
 	if (0x10 <= seq->profile_level_id && seq->profile_level_id < 0x60 &&
@@ -306,12 +321,33 @@ void dump_state (FILE * f, mpeg2_state_t state, const mpeg2_info_t * info,
 	    SEQ_VIDEO_FORMAT_UNSPECIFIED)
 	    fprintf (f, " %s", video_fmt[(seq->flags & SEQ_MASK_VIDEO_FORMAT) /
 					 SEQ_VIDEO_FORMAT_PAL]);
-	if (seq->flags & SEQ_FLAG_COLOUR_DESCRIPTION)
-	    fprintf (f, " COLORS (prim %d transfer %d matrix %d)",
-		     seq->colour_primaries, seq->transfer_characteristics,
-		     seq->matrix_coefficients);
+	if (seq->flags & SEQ_FLAG_COLOUR_DESCRIPTION) {
+	    if (seq->colour_primaries == seq->transfer_characteristics &&
+		seq->colour_primaries == seq->matrix_coefficients &&
+		seq->colour_primaries <= 7 && colour3[seq->colour_primaries])
+		fprintf (f, " %s", colour3[seq->colour_primaries]);
+	    else {
+		char prim[16], trans[16], matrix[16];
+		sprintf (prim, "%d", seq->colour_primaries);
+		sprintf (trans, "%d", seq->transfer_characteristics);
+		sprintf (matrix, "%d", seq->matrix_coefficients);
+		if (seq->colour_primaries <= 7 &&
+		    colour[seq->colour_primaries])
+		    strncpy (prim, colour[seq->colour_primaries], 15);
+		if (seq->transfer_characteristics <= 8 &&
+		    colour[seq->transfer_characteristics])
+		    strncpy (trans, colour[seq->transfer_characteristics], 15);
+		if (seq->matrix_coefficients == 4)
+		    strncpy (matrix, "FCC", 15);
+		else if (seq->matrix_coefficients <= 7 &&
+			 colour[seq->matrix_coefficients])
+		    strncpy (matrix, colour[seq->matrix_coefficients], 15);
+		fprintf (f, " COLORS (prim %s trans %s matrix %s)",
+			 prim, trans, matrix);
+	    }
+	}
 	fprintf (f, " %dx%d chroma %dx%d fps %.*f maxBps %d vbv %d "
-		 "picture %dx%d display %dx%d pixel %dx%d\n",
+		 "picture %dx%d display %dx%d pixel %dx%d",
 		 seq->width, seq->height,
 		 seq->chroma_width, seq->chroma_height,
 		 27000000%seq->frame_period?2:0, 27000000.0/seq->frame_period,
@@ -319,6 +355,9 @@ void dump_state (FILE * f, mpeg2_state_t state, const mpeg2_info_t * info,
 		 seq->picture_width, seq->picture_height,
 		 seq->display_width, seq->display_height,
 		 seq->pixel_width, seq->pixel_height);
+	if (mpeg2_guess_aspect (seq, &pixel_width, &pixel_height))
+	    fprintf (f, " guessed %dx%d", pixel_width, pixel_height);
+	fprintf (f, "\n");
 	break;
     case STATE_GOP:
 	if (gop->flags & GOP_FLAG_DROP_FRAME)

@@ -79,7 +79,7 @@ AC_DEFUN([AC_C_ATTRIBUTE_ALIGNED],
 		} S = {0, 0};
 		switch (1) {
 		    case 0:
-		    case (int)(&((struct s *)0)->b) == $ac_cv_c_attr_align_try:
+		    case (long)(&((struct s *)0)->b) == $ac_cv_c_attr_align_try:
 			return 0;
 		}
 		return (long)&S;],
@@ -168,7 +168,7 @@ dnl Remember, if the system already had a valid <stdint.h>, the generated
 dnl file will include it directly. No need for fuzzy HAVE_STDINT_H things...
 dnl
 dnl @, (status: used on new platforms) (see http://ac-archive.sf.net/gstdint/)
-dnl @version $Id: acinclude.m4,v 1.16.2.1 2006/02/14 14:22:16 sammy Exp $
+dnl @version $Id$
 dnl @author  Guido Draheim <guidod@gmx.de> 
 
 AC_DEFUN([AX_CREATE_STDINT_H],

@@ -28,6 +28,7 @@
 
 #include "mpeg2.h"
 #include "video_out.h"
+#include "vo_internal.h"
 #include "mpeg2convert.h"
 
 static void null_draw_frame (vo_instance_t * instance,

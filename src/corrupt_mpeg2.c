@@ -77,31 +77,31 @@ static uint32_t clip (double p)
     return (p < 0) ? 0 : ((p >= 1) ? 0xffffffff : (uint32_t)(p*4294967296.0));
 }
 
-static void randbyte_init (double p, randbyte_t * rand)
+static void randbyte_init (double p, randbyte_t * rnd)
 {
     double q, r;
     int i;
 
-    rand->p = clip (p);
+    rnd->p = clip (p);
     r = 1;
     for (i = 0; i < 8; i++) {
 	r *= 1 - p;
 	q = p / (1 - r);
-	rand->q[i] = clip (q);
+	rnd->q[i] = clip (q);
     }
-    rand->r = clip (1 - r);
+    rnd->r = clip (1 - r);
 }
 
-static inline uint8_t randbyte (const randbyte_t * const rand)
+static inline uint8_t randbyte (const randbyte_t * const rnd)
 {
     int i, j;
 
-    if (fastrand () > rand->r || rand->r == 0)
+    if (fastrand () > rnd->r || rnd->r == 0)
 	return 0;
 
     i = 7; j = 0;
     do
-	if (fastrand () <= (j ? rand->p : rand->q[i]))
+	if (fastrand () <= (j ? rnd->p : rnd->q[i]))
 	    j |= 1 << i;
     while (i--);
     return j;
@@ -125,7 +125,7 @@ static void corrupt_arg (corrupt_t * corrupt, int type, char * s, char ** argv)
 {
     corrupt->type = type;
     if (! *s)
-	s = ",0-0xff,0-";
+	s = (char *)",0-0xff,0-";
     else if (*s != ',' || !isdigit (s[1]))
 	print_usage (argv);
     corrupt->chunk_start = strtol (s + 1, &s, 0);
@@ -136,7 +136,7 @@ static void corrupt_arg (corrupt_t * corrupt, int type, char * s, char ** argv)
     else
 	print_usage (argv);
     if (! *s)
-	s = ",32-";
+	s = (char *)",32-";
     else if (*s != ',' || !isdigit (s[1]))
 	print_usage (argv);
     corrupt->bit_start = strtol (s + 1, &s, 0);
@@ -258,7 +258,7 @@ static void update_corrupt_list (void)
 
 static void corrupt (uint8_t * ptr)
 {
-    corrupt_t * corrupt;
+    corrupt_t * corrupt_ptr;
 
     if (ptr[0] == 0 && ptr[1] == 0 && ptr[2] == 1) {
 	current_chunk = (ptr[3] << 4) | (ptr[4] >> 4);
@@ -269,14 +269,14 @@ static void corrupt (uint8_t * ptr)
 
     current_bit += 8;
 
-    for (corrupt = corrupt_head; corrupt; corrupt = corrupt->next)
-	switch (corrupt->type) {
+    for (corrupt_ptr = corrupt_head; corrupt_ptr; corrupt_ptr = corrupt_ptr->next)
+	switch (corrupt_ptr->type) {
 	case CORRUPT_RANDOM:
-	    *ptr ^= randbyte (&corrupt->u.prob) & corrupt->mask;
+	    *ptr ^= randbyte (&corrupt_ptr->u.prob) & corrupt_ptr->mask;
 	    break;
 	case CORRUPT_VALUE:
-	    *ptr = ((*ptr & ~corrupt->mask) |
-		    (randbyte (&corrupt->u.prob) & corrupt->mask));
+	    *ptr = ((*ptr & ~corrupt_ptr->mask) |
+		    (randbyte (&corrupt_ptr->u.prob) & corrupt_ptr->mask));
 	    break;
 	}
 }

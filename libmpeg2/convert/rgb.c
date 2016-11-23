@@ -139,7 +139,7 @@ static void func (void * _id, uint8_t * const * src,			\
     int i;								\
     DITHER(uint8_t dithpos = id->base.dither_offset;)			\
 									\
-    dst_1 = (type *)(id->base.rgb_ptr + id->base.rgb_stride * v_offset);\
+    dst_1 = (type *)(id->base.rgb_ptr + id->base.rgb_slice * v_offset);	\
     py_1 = src[0];	pu = src[1];	pv = src[2];			\
 									\
     i = 8;								\
@@ -185,12 +185,20 @@ static void func (void * _id, uint8_t * const * src,			\
 	    dst_1 += 8 * num;						\
 	    dst_2 += 8 * num;						\
 	} while (--j);							\
-	py_1 += id->base.y_increm;					\
-	pu += id->base.uv_increm;					\
-	pv += id->base.uv_increm;					\
-	dst_1 = (type *)((char *)dst_1 + id->base.rgb_increm);		\
-	DITHER(dithpos += id->base.dither_stride;)			\
-    } while (--i);							\
+	if (--i == id->base.field) {					\
+	    dst_1 = (type *)(id->base.rgb_ptr +				\
+			     id->base.rgb_slice * (v_offset + 1));	\
+	    py_1 = src[0] + id->base.y_stride_frame;			\
+	    pu = src[1] + id->base.uv_stride_frame;			\
+	    pv = src[2] + id->base.uv_stride_frame;			\
+	} else {							\
+	    py_1 += id->base.y_increm;					\
+	    pu += id->base.uv_increm;					\
+	    pv += id->base.uv_increm;					\
+	    dst_1 = (type *)((char *)dst_1 + id->base.rgb_increm);	\
+	    DITHER(dithpos += id->base.dither_stride;)			\
+	}								\
+    } while (i);							\
 }
 
 DECLARE_420 (rgb_c_32_420, uint32_t, 1, DST, SKIP)
@@ -320,19 +328,25 @@ static void rgb_start (void * _id, const mpeg2_fbuf_t * fbuf,
     int uv_stride = id->uv_stride_frame;
     id->y_stride = id->y_stride_frame;
     id->rgb_ptr = fbuf->buf[0];
-    id->rgb_stride = id->rgb_stride_frame;
+    id->rgb_slice = id->rgb_stride = id->rgb_stride_frame;
     id->dither_stride = 32;
     id->dither_offset = dither_temporal[picture->temporal_reference & 63];
-    if (picture->nb_fields == 1) {
+    id->field = 0;
+    if ((picture->nb_fields == 1) ||
+	(id->chroma420 && !(picture->flags & PIC_FLAG_PROGRESSIVE_FRAME))) {
 	uv_stride <<= 1;
 	id->y_stride <<= 1;
 	id->rgb_stride <<= 1;
 	id->dither_stride <<= 1;
 	id->dither_offset += 16;
-	if (!(picture->flags & PIC_FLAG_TOP_FIELD_FIRST)) {
-	    id->rgb_ptr += id->rgb_stride_frame;
-	    id->dither_offset += 32;
-	}
+	if (picture->nb_fields == 1) {
+	    id->rgb_slice <<= 1;
+	    if (!(picture->flags & PIC_FLAG_TOP_FIELD_FIRST)) {
+		id->rgb_ptr += id->rgb_stride_frame;
+		id->dither_offset += 32;
+	    }
+	} else
+	    id->field = 8 >> id->convert420;
     }
     id->y_increm = (id->y_stride << id->convert420) - id->y_stride_frame;
     id->uv_increm = uv_stride - id->uv_stride_frame;

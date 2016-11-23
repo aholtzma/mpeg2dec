@@ -1,20 +1,23 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.54)
-AC_INIT
+AC_INIT([libmpeg2],[0.5.0],[])
+
 AC_CONFIG_SRCDIR([src/mpeg2dec.c])
-AC_CONFIG_AUX_DIR(autotools)
-AC_CONFIG_FILES([Makefile autotools/Makefile include/Makefile test/Makefile
+AC_CONFIG_AUX_DIR(.auto)
+AC_CONFIG_FILES([Makefile include/Makefile test/Makefile
     doc/Makefile src/Makefile libmpeg2/Makefile libmpeg2/convert/Makefile
     libvo/Makefile vc++/Makefile
     libmpeg2/libmpeg2.pc libmpeg2/convert/libmpeg2convert.pc])
-AM_INIT_AUTOMAKE([mpeg2dec],[0.4.1])
 AC_CONFIG_HEADERS([include/config.h])
-AM_MAINTAINER_MODE
 AC_CANONICAL_HOST
+
+AM_INIT_AUTOMAKE([1.5 -Wall foreign])
+AM_MAINTAINER_MODE
 
 dnl Checks for compiler
 AC_PROG_CC
 AC_PROG_GCC_TRADITIONAL
+AM_PROG_AS
 
 dnl Checks for headers. We do this before the CC-specific section because
 dnl autoconf generates tests for generic headers before the first header test.
@@ -31,7 +34,7 @@ elif test x"$GCC" = x"yes"; then
 
     dnl -Wall
     dnl -Werror moved to the end to not disturb the configure script
-    TRY_CFLAGS="$OPT_CFLAGS -Wall"
+    TRY_CFLAGS="$OPT_CFLAGS -Wall -Wpointer-arith -Wcast-align -Wcast-qual -Wstrict-prototypes -Wshadow -Waggregate-return -Wmissing-prototypes -Wnested-externs -Wsign-compare"
     AC_TRY_CFLAGS([$TRY_CFLAGS $CFLAGS],[OPT_CFLAGS="$TRY_CFLAGS"])
 
     dnl -O3
@@ -39,7 +42,7 @@ elif test x"$GCC" = x"yes"; then
     TRY_CFLAGS=`echo "$OPT_CFLAGS $CFLAGS"|sed "s/-O[0-9]*//g"`
     changequote([,])
     TRY_CFLAGS="$TRY_CFLAGS -O3"
-    AC_TRY_CFLAGS([$TRY_CFLAGS],[OPT_CFLAGS="$TRY_CFLAGS"; CFLAGS=""])
+    AC_TRY_CFLAGS([$TRY_CFLAGS],[OPT_CFLAGS="$TRY_CFLAGS"])
 
     AC_ARG_ENABLE([debug],
 	[  --enable-debug          debug mode configuration])
@@ -56,6 +59,7 @@ elif test x"$GCC" = x"yes"; then
     AC_TRY_CFLAGS([$TRY_CFLAGS $CFLAGS],[OPT_CFLAGS="$TRY_CFLAGS"])
 
     dnl arch-specific flags
+    arm_conditional=false
     case "$host" in
     i?86-* | k?-* | x86_64-* | amd64-*)
 	AC_DEFINE([ARCH_X86],,[x86 architecture])
@@ -97,6 +101,9 @@ elif test x"$GCC" = x"yes"; then
 	AC_TRY_CFLAGS([$TRY_CFLAGS $CFLAGS],[OPT_CFLAGS="$TRY_CFLAGS"]);;
     alpha*)
 	AC_DEFINE([ARCH_ALPHA],,[alpha architecture]);;
+    arm*)
+	arm_conditional=:
+	AC_DEFINE([ARCH_ARM],,[ARM architecture]);;
     esac
 elif test x"$CC" = x"tendracc"; then
     dnl TenDRA portability checking compiler
@@ -106,7 +113,7 @@ elif test x"$CC" = x"tendracc"; then
     enable_sdl=no
 elif test x"$CC" = x"icc" -a x"`$CC -V 2>&1 | grep Intel`" != x""; then
     dnl Intel C++ compiler
-    OPT_CFLAGS="-g -O3 -unroll -ip"; CFLAGS=""
+    OPT_CFLAGS="-g -O3 -unroll -ip"
 else
     dnl non-gcc flags - we probably need exact configuration triplets here.
     case "$host" in
@@ -116,16 +123,17 @@ else
     esac
 fi
 
+AM_CONDITIONAL(ARCH_ARM, ${arm_conditional})
+
 dnl Checks for libtool - this must be done after we set cflags
-AC_DISABLE_SHARED
 AC_LIBTOOL_WIN32_DLL
 AC_PROG_LIBTOOL
 
 dnl Checks for libraries.
 
 dnl Checks for header files.
-INCLUDES='-I$(top_srcdir)/include -I$(top_builddir)/include'
-AC_SUBST([INCLUDES])
+AM_CPPFLAGS='-I$(top_srcdir)/include -I$(top_builddir)/include'
+AC_SUBST([AM_CPPFLAGS])
 AC_HEADER_TIME
 AC_CHECK_TYPES([struct timeval], [], [],
     [#include <sys/time.h>

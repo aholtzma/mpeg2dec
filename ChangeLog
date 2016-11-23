@@ -1,3 +1,12 @@
+mpeg2dec-0.5.0 Fri Jun 11 23:42:12 CET 2008
+-add STATE_SEQUENCE_MODIFIED
+-aspect ratio guessing functionality
+-support for ARM-specific optimizations
+-export repeat_first_field flag
+-add SSE2 IDCT
+-more tolerance for invalid streams
+-fix warnings triggered by recent GCC
+
 mpeg2dec-0.4.1 Wed Feb 15 17:08:28 CET 2006
 -fix build issues on X86-64, PowerPC, Alpha and Sparc
 -fix build issues on FreeBSD and OS X

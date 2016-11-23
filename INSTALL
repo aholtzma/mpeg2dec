@@ -5,7 +5,7 @@ Unix build instructions
 make
 make install
 
-If you install from CVS you'll have to run ./bootstrap first
+If you install from Subversion you'll have to run ./bootstrap first
 
 
 Building for win32

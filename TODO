@@ -1,3 +1,6 @@
+* plain bugs
+	* fix VIS IDCT code (handling of nonprogressive frame pictures)
+
 * things we dont implement yet
 	* more verbose error reporting
 	* export MC information (for XvMC or for error resilience)

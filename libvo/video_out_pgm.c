@@ -31,6 +31,7 @@
 #include <inttypes.h>
 
 #include "video_out.h"
+#include "vo_internal.h"
 
 typedef struct pgm_instance_s {
     vo_instance_t vo;
@@ -303,7 +304,7 @@ static void md5_draw_frame (vo_instance_t * _instance,
 {
     pgm_instance_t * instance = (pgm_instance_t *) _instance;
     unsigned int offset;
-    char * p;
+    uint8_t * p;
     int padding;
 
     instance->md5_hash[0] = 0x67452301;
@@ -315,7 +316,7 @@ static void md5_draw_frame (vo_instance_t * _instance,
     internal_draw_frame (instance, buf);
 
     offset = instance->md5_bytes & 0x3f;
-    p = (char *)instance->md5_block + offset;
+    p = (uint8_t *)instance->md5_block + offset;
     padding = 55 - offset;
 
     *p++ = 0x80;
@@ -323,7 +324,7 @@ static void md5_draw_frame (vo_instance_t * _instance,
 	memset (p, 0, padding + 8);
 	little_endian (instance->md5_block, 16);
 	md5_transform (instance->md5_hash, instance->md5_block);
-	p = (char *)instance->md5_block;
+	p = (uint8_t *)instance->md5_block;
 	padding = 56;
     }
 

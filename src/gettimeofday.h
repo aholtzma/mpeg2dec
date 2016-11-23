@@ -21,6 +21,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#ifndef LIBMPEG2_GETTIMEOFDAY_H
+#define LIBMPEG2_GETTIMEOFDAY_H
+
 #if defined(HAVE_STRUCT_TIMEVAL) && defined(HAVE_GETTIMEOFDAY)
 #if defined(TIME_WITH_SYS_TIME)
 #include <sys/time.h>
@@ -45,3 +48,5 @@ void gettimeofday (struct timeval * tp, void * dummy);
 #else
 #undef HAVE_GETTIMEOFDAY
 #endif
+
+#endif /* LIBMPEG2_GETTIMEOFDAY_H */

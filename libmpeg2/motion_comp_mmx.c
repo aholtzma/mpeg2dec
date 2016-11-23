@@ -23,7 +23,7 @@
 
 #include "config.h"
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 
 #include <inttypes.h>
 
@@ -63,7 +63,7 @@ static mmx_t round4 = {0x0002000200020002LL};
  * unrolling will help
  */
 
-static inline void mmx_zero_reg ()
+static inline void mmx_zero_reg (void)
 {
     /* load 0 into mm0 */
     pxor_r2r (mm0, mm0);

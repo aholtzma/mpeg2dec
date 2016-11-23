@@ -27,6 +27,7 @@
  *
  * It demonstrates how to use the following features of libmpeg2:
  * - Output buffers use the YUV 4:2:0 planar format.
+ * - Output buffers must be 16-byte aligned.
  * - Output buffers are allocated and managed by the caller.
  */
 

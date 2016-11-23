@@ -73,7 +73,7 @@ static void print_fps (int final)
     static int total_elapsed;
     static int last_count = 0;
     struct timeval tv_end;
-    float fps, tfps;
+    double fps, tfps;
     int frames, elapsed;
 
     if (verbose)
@@ -517,7 +517,7 @@ static int demux (uint8_t * buf, uint8_t * end, int flags)
 			       (header[10] << 22) | ((header[11] >> 1) << 15) |
 			       (header[12] << 7) | (header[13] >> 1));
 			dts = (!(header[7] & 0x40) ? pts :
-			       (((header[14] >> 1) << 30) |
+			       (uint32_t)(((header[14] >> 1) << 30) |
 				(header[15] << 22) |
 				((header[16] >> 1) << 15) |
 				(header[17] << 7) | (header[18] >> 1)));
@@ -552,7 +552,7 @@ static int demux (uint8_t * buf, uint8_t * end, int flags)
 			       (ptsbuf[0] << 22) | ((ptsbuf[1] >> 1) << 15) |
 			       (ptsbuf[2] << 7) | (ptsbuf[3] >> 1));
 			dts = (((ptsbuf[-1] & 0xf0) != 0x30) ? pts :
-			       (((ptsbuf[4] >> 1) << 30) |
+			       (uint32_t)(((ptsbuf[4] >> 1) << 30) |
 				(ptsbuf[5] << 22) | ((ptsbuf[6] >> 1) << 15) |
 				(ptsbuf[7] << 7) | (ptsbuf[18] >> 1)));
 			mpeg2_tag_picture (mpeg2dec, pts, dts);

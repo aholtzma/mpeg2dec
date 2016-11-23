@@ -155,31 +155,15 @@ There are several places where we could easily use some help:
 	could probably be optimized a lot.
 
 
-CVS SNAPSHOTS
-
-A daily snapshot is created using "make distcheck" every night and
-uploaded to http://libmpeg2.sourceforge.net/files/mpeg2dec-snapshot.tar.gz .
-It is easier to use than the CVS repository, because you do not need
-to have the right versions of automake, autoconf and libtool
-installed. It might be convenient when working on a libmpeg2 port for
-example.
-
-
-CVS REPOSITORY
+SUBVERSION REPOSITORY
 
 The latest libmpeg2 and mpeg2dec source code can always be found by
-anonymous CVS:
+anonymous Subversion:
 
-# export CVSROOT=:pserver:anonymous@cvs.libmpeg2.sourceforge.net:/cvsroot/libmpeg2
-# cvs login (Just press Return when prompted for a password)
-# cvs checkout mpeg2dec
+$ svn checkout svn://svn.videolan.org/libmpeg2/trunk libmpeg2
 
 You can also browse the latest changes online at
-http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/libmpeg2/mpeg2dec/
-
-The other CVS modules are mpeg2dec-streams for the test suite, and
-mpeg2dec-livid for the CVS history of the project while it was still
-hosted on the linuxvideo.org servers.
+https://trac.videolan.org/libmpeg2/browser
 
 
 MAILING LISTS

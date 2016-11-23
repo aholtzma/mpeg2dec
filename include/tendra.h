@@ -21,6 +21,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#ifndef LIBMPEG2_TENDRA_H
+#define LIBMPEG2_TENDRA_H
+
 #pragma TenDRA begin
 #pragma TenDRA longlong type warning
 
@@ -33,3 +36,5 @@
 int TenDRA;
 
 #endif /* TenDRA_check */
+
+#endif /* LIBMPEG2_TENDRA_H */
