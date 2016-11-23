@@ -1,8 +1,10 @@
 /*
  * mpeg2_internal.h
- * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
+ * See http://libmpeg2.sourceforge.net/ for updates.
  *
  * mpeg2dec is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,13 +49,14 @@
 
 typedef struct motion_s {
     uint8_t * ref[2][3];
+    uint8_t ** ref2[2];
     int pmv[2][2];
     int f_code[2];
 } motion_t;
 
 typedef struct picture_s {
     /* first, state that carries information from one macroblock to the */
-    /* next inside a slice, and is never used outside of slice_process() */
+    /* next inside a slice, and is never used outside of mpeg2_slice() */
 
     /* DCT coefficients - should be kept aligned ! */
     int16_t DCTblock[64];
@@ -62,6 +65,15 @@ typedef struct picture_s {
     uint32_t bitstream_buf;	/* current 32 bit working set of buffer */
     int bitstream_bits;		/* used bits in working set */
     uint8_t * bitstream_ptr;	/* buffer with stream data */
+
+    uint8_t * dest[3];
+    int offset;
+    int stride;
+    int uv_stride;
+    unsigned int limit_x;
+    unsigned int limit_y_16;
+    unsigned int limit_y_8;
+    unsigned int limit_y;
 
     /* Motion vectors */
     /* The f_ and b_ correspond to the forward and backward motion */
@@ -73,7 +85,8 @@ typedef struct picture_s {
     int16_t dc_dct_pred[3];
 
     int quantizer_scale;	/* remove */
-    int current_field;		/* remove */
+    int dmv_offset;		/* remove */
+    unsigned int v_offset;	/* remove */
 
 
     /* now non-slice-specific information */
@@ -93,8 +106,6 @@ typedef struct picture_s {
 	
     /* picture coding extension stuff */
 	
-    /* quantization factor for motion vectors */
-    int f_code[2][2];
     /* quantization factor for intra dc coefficients */
     int intra_dc_precision;
     /* top/bottom/both fields */
@@ -134,62 +145,68 @@ typedef struct picture_s {
     int bitrate;
 } picture_t;
 
-typedef struct mpeg2_config_s {
-    /* Bit flags that enable various things */
-    uint32_t flags;
-} mpeg2_config_t;
+typedef struct cpu_state_s {
+#ifdef ARCH_PPC
+    uint8_t regv[12*16];
+#endif
+    int dummy;
+} cpu_state_t;
 
-/* The only global variable, */
-/* the config struct */
-extern mpeg2_config_t config;
+/* cpu_state.c */
+void mpeg2_cpu_state_init (uint32_t mm_accel);
 
-
-
-/* slice.c */
-void header_state_init (picture_t * picture);
-int header_process_picture_header (picture_t * picture, uint8_t * buffer);
-int header_process_sequence_header (picture_t * picture, uint8_t * buffer);
-int header_process_extension (picture_t * picture, uint8_t * buffer);
+/* header.c */
+void mpeg2_header_state_init (picture_t * picture);
+int mpeg2_header_picture (picture_t * picture, uint8_t * buffer);
+int mpeg2_header_sequence (picture_t * picture, uint8_t * buffer);
+int mpeg2_header_extension (picture_t * picture, uint8_t * buffer);
 
 /* idct.c */
-void idct_init (void);
+void mpeg2_idct_init (uint32_t mm_accel);
 
 /* idct_mlib.c */
-void idct_block_copy_mlib (int16_t * block, uint8_t * dest, int stride);
-void idct_block_add_mlib (int16_t * block, uint8_t * dest, int stride);
+void mpeg2_idct_add_mlib (int16_t * block, uint8_t * dest, int stride);
+void mpeg2_idct_copy_mlib_non_ieee (int16_t * block, uint8_t * dest,
+				    int stride);
+void mpeg2_idct_add_mlib_non_ieee (int16_t * block, uint8_t * dest,
+				   int stride);
 
 /* idct_mmx.c */
-void idct_block_copy_mmxext (int16_t *block, uint8_t * dest, int stride);
-void idct_block_add_mmxext (int16_t *block, uint8_t * dest, int stride);
-void idct_block_copy_mmx (int16_t *block, uint8_t * dest, int stride);
-void idct_block_add_mmx (int16_t *block, uint8_t * dest, int stride);
-void idct_mmx_init (void);
+void mpeg2_idct_copy_mmxext (int16_t * block, uint8_t * dest, int stride);
+void mpeg2_idct_add_mmxext (int16_t * block, uint8_t * dest, int stride);
+void mpeg2_idct_copy_mmx (int16_t * block, uint8_t * dest, int stride);
+void mpeg2_idct_add_mmx (int16_t * block, uint8_t * dest, int stride);
+void mpeg2_idct_mmx_init (void);
+
+/* idct_altivec.c */
+void mpeg2_idct_copy_altivec (int16_t * block, uint8_t * dest, int stride);
+void mpeg2_idct_add_altivec (int16_t * block, uint8_t * dest, int stride);
+void mpeg2_idct_altivec_init (void);
 
 /* motion_comp.c */
-void motion_comp_init (void);
+void mpeg2_mc_init (uint32_t mm_accel);
 
-typedef struct mc_functions_s
-{
-    void (* put [8]) (uint8_t *dst, uint8_t *, int32_t, int32_t);
-    void (* avg [8]) (uint8_t *dst, uint8_t *, int32_t, int32_t);
-} mc_functions_t;
+typedef struct mpeg2_mc_s {
+    void (* put [8]) (uint8_t * dst, uint8_t *, int32_t, int32_t);
+    void (* avg [8]) (uint8_t * dst, uint8_t *, int32_t, int32_t);
+} mpeg2_mc_t;
 
-#define MOTION_COMP_EXTERN(x) mc_functions_t mc_functions_##x =		\
-{									\
-    {MC_put_16_##x, MC_put_x16_##x, MC_put_y16_##x, MC_put_xy16_##x,	\
-     MC_put_8_##x,  MC_put_x8_##x,  MC_put_y8_##x,  MC_put_xy8_##x},	\
-    {MC_avg_16_##x, MC_avg_x16_##x, MC_avg_y16_##x, MC_avg_xy16_##x,	\
-     MC_avg_8_##x,  MC_avg_x8_##x,  MC_avg_y8_##x,  MC_avg_xy8_##x}	\
+#define MPEG2_MC_EXTERN(x) mpeg2_mc_t mpeg2_mc_##x = {			  \
+    {MC_put_o_16_##x, MC_put_x_16_##x, MC_put_y_16_##x, MC_put_xy_16_##x, \
+     MC_put_o_8_##x,  MC_put_x_8_##x,  MC_put_y_8_##x,  MC_put_xy_8_##x}, \
+    {MC_avg_o_16_##x, MC_avg_x_16_##x, MC_avg_y_16_##x, MC_avg_xy_16_##x, \
+     MC_avg_o_8_##x,  MC_avg_x_8_##x,  MC_avg_y_8_##x,  MC_avg_xy_8_##x}  \
 };
 
-extern mc_functions_t mc_functions_c;
-extern mc_functions_t mc_functions_mmx;
-extern mc_functions_t mc_functions_mmxext;
-extern mc_functions_t mc_functions_3dnow;
-extern mc_functions_t mc_functions_mlib;
+extern mpeg2_mc_t mpeg2_mc_c;
+extern mpeg2_mc_t mpeg2_mc_mmx;
+extern mpeg2_mc_t mpeg2_mc_mmxext;
+extern mpeg2_mc_t mpeg2_mc_3dnow;
+extern mpeg2_mc_t mpeg2_mc_altivec;
+extern mpeg2_mc_t mpeg2_mc_mlib;
 
 /* slice.c */
-int slice_process (picture_t *picture, uint8_t code, uint8_t * buffer);
+void mpeg2_slice (picture_t * picture, int code, uint8_t * buffer);
 
 /* stats.c */
-void stats_header (uint8_t code, uint8_t * buffer);
+void mpeg2_stats (int code, uint8_t * buffer);

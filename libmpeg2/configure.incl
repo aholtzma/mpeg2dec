@@ -1,6 +1,9 @@
 AC_SUBST([LIBMPEG2_CFLAGS])
 AC_SUBST([LIBMPEG2_LIBS])
 
+dnl avoid -fPIC when possible
+LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -prefer-non-pic"
+
 dnl check for mlib
 AC_ARG_ENABLE([mlib],
     [  --disable-mlib          make a version not using mediaLib])

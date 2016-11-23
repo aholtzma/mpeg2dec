@@ -1,8 +1,10 @@
 /*
  * motion_comp_mmx.c
- * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
+ * See http://libmpeg2.sourceforge.net/ for updates.
  *
  * mpeg2dec is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,8 +44,8 @@
 
 
 /* some rounding constants */
-mmx_t round1 = {0x0001000100010001LL};
-mmx_t round4 = {0x0002000200020002LL};
+static mmx_t round1 = {0x0001000100010001LL};
+static mmx_t round4 = {0x0002000200020002LL};
 
 /*
  * This code should probably be compiled with loop unrolling
@@ -269,14 +271,14 @@ static inline void MC_avg_mmx (int width, int height,
     } while (--height);
 }
 
-static void MC_avg_16_mmx (uint8_t * dest, uint8_t * ref,
-			   int stride, int height)
+static void MC_avg_o_16_mmx (uint8_t * dest, uint8_t * ref,
+			     int stride, int height)
 {
     MC_avg_mmx (16, height, dest, ref, stride);
 }
 
-static void MC_avg_8_mmx (uint8_t * dest, uint8_t * ref,
-			  int stride, int height)
+static void MC_avg_o_8_mmx (uint8_t * dest, uint8_t * ref,
+			    int stride, int height)
 {
     MC_avg_mmx (8, height, dest, ref, stride);
 }
@@ -303,14 +305,14 @@ static inline void MC_put_mmx (int width, int height,
     } while (--height);
 }
 
-static void MC_put_16_mmx (uint8_t * dest, uint8_t * ref,
-			   int stride, int height)
+static void MC_put_o_16_mmx (uint8_t * dest, uint8_t * ref,
+			     int stride, int height)
 {
     MC_put_mmx (16, height, dest, ref, stride);
 }
 
-static void MC_put_8_mmx (uint8_t * dest, uint8_t * ref,
-			  int stride, int height)
+static void MC_put_o_8_mmx (uint8_t * dest, uint8_t * ref,
+			    int stride, int height)
 {
     MC_put_mmx (8, height, dest, ref, stride);
 }
@@ -334,14 +336,14 @@ static inline void MC_avg_x_mmx (int width, int height,
     } while (--height);
 }
 
-static void MC_avg_x16_mmx (uint8_t * dest, uint8_t * ref,
-			    int stride, int height)
+static void MC_avg_x_16_mmx (uint8_t * dest, uint8_t * ref,
+			     int stride, int height)
 {
     MC_avg_x_mmx (16, height, dest, ref, stride);
 }
 
-static void MC_avg_x8_mmx (uint8_t * dest, uint8_t * ref,
-			   int stride, int height)
+static void MC_avg_x_8_mmx (uint8_t * dest, uint8_t * ref,
+			    int stride, int height)
 {
     MC_avg_x_mmx (8, height, dest, ref, stride);
 }
@@ -364,14 +366,14 @@ static inline void MC_put_x_mmx (int width, int height,
     } while (--height);
 }
 
-static void MC_put_x16_mmx (uint8_t * dest, uint8_t * ref,
-			    int stride, int height)
+static void MC_put_x_16_mmx (uint8_t * dest, uint8_t * ref,
+			     int stride, int height)
 {
     MC_put_x_mmx (16, height, dest, ref, stride);
 }
 
-static void MC_put_x8_mmx (uint8_t * dest, uint8_t * ref,
-			   int stride, int height)
+static void MC_put_x_8_mmx (uint8_t * dest, uint8_t * ref,
+			    int stride, int height)
 {
     MC_put_x_mmx (8, height, dest, ref, stride);
 }
@@ -398,14 +400,14 @@ static inline void MC_avg_xy_mmx (int width, int height,
     } while (--height);
 }
 
-static void MC_avg_xy16_mmx (uint8_t * dest, uint8_t * ref,
-			     int stride, int height)
+static void MC_avg_xy_16_mmx (uint8_t * dest, uint8_t * ref,
+			      int stride, int height)
 {
     MC_avg_xy_mmx (16, height, dest, ref, stride);
 }
 
-static void MC_avg_xy8_mmx (uint8_t * dest, uint8_t * ref,
-			    int stride, int height)
+static void MC_avg_xy_8_mmx (uint8_t * dest, uint8_t * ref,
+			     int stride, int height)
 {
     MC_avg_xy_mmx (8, height, dest, ref, stride);
 }
@@ -431,14 +433,14 @@ static inline void MC_put_xy_mmx (int width, int height,
     } while (--height);
 }
 
-static void MC_put_xy16_mmx (uint8_t * dest, uint8_t * ref,
-			     int stride, int height)
+static void MC_put_xy_16_mmx (uint8_t * dest, uint8_t * ref,
+			      int stride, int height)
 {
     MC_put_xy_mmx (16, height, dest, ref, stride);
 }
 
-static void MC_put_xy8_mmx (uint8_t * dest, uint8_t * ref,
-			    int stride, int height)
+static void MC_put_xy_8_mmx (uint8_t * dest, uint8_t * ref,
+			     int stride, int height)
 {
     MC_put_xy_mmx (8, height, dest, ref, stride);
 }
@@ -464,14 +466,14 @@ static inline void MC_avg_y_mmx (int width, int height,
     } while (--height);
 }
 
-static void MC_avg_y16_mmx (uint8_t * dest, uint8_t * ref,
-			    int stride, int height)
+static void MC_avg_y_16_mmx (uint8_t * dest, uint8_t * ref,
+			     int stride, int height)
 {
     MC_avg_y_mmx (16, height, dest, ref, stride);
 }
 
-static void MC_avg_y8_mmx (uint8_t * dest, uint8_t * ref,
-			   int stride, int height)
+static void MC_avg_y_8_mmx (uint8_t * dest, uint8_t * ref,
+			    int stride, int height)
 {
     MC_avg_y_mmx (8, height, dest, ref, stride);
 }
@@ -497,20 +499,20 @@ static inline void MC_put_y_mmx (int width, int height,
     } while (--height);
 }
 
-static void MC_put_y16_mmx (uint8_t * dest, uint8_t * ref,
-			    int stride, int height)
+static void MC_put_y_16_mmx (uint8_t * dest, uint8_t * ref,
+			     int stride, int height)
 {
     MC_put_y_mmx (16, height, dest, ref, stride);
 }
 
-static void MC_put_y8_mmx (uint8_t * dest, uint8_t * ref,
-			   int stride, int height)
+static void MC_put_y_8_mmx (uint8_t * dest, uint8_t * ref,
+			    int stride, int height)
 {
     MC_put_y_mmx (8, height, dest, ref, stride);
 }
 
 
-MOTION_COMP_EXTERN (mmx)
+MPEG2_MC_EXTERN (mmx)
 
 
 
@@ -814,204 +816,204 @@ static inline void MC_avg4_16 (int height, uint8_t * dest, uint8_t * ref,
     } while (--height);
 }
 
-static void MC_avg_16_mmxext (uint8_t * dest, uint8_t * ref,
-			      int stride, int height)
+static void MC_avg_o_16_mmxext (uint8_t * dest, uint8_t * ref,
+				int stride, int height)
 {
     MC_avg1_16 (height, dest, ref, stride, CPU_MMXEXT);
 }
 
-static void MC_avg_8_mmxext (uint8_t * dest, uint8_t * ref,
-			     int stride, int height)
+static void MC_avg_o_8_mmxext (uint8_t * dest, uint8_t * ref,
+			       int stride, int height)
 {
     MC_avg1_8 (height, dest, ref, stride, CPU_MMXEXT);
 }
 
-static void MC_put_16_mmxext (uint8_t * dest, uint8_t * ref,
-			      int stride, int height)
+static void MC_put_o_16_mmxext (uint8_t * dest, uint8_t * ref,
+				int stride, int height)
 {
     MC_put1_16 (height, dest, ref, stride);
 }
 
-static void MC_put_8_mmxext (uint8_t * dest, uint8_t * ref,
-			     int stride, int height)
+static void MC_put_o_8_mmxext (uint8_t * dest, uint8_t * ref,
+			       int stride, int height)
 {
     MC_put1_8 (height, dest, ref, stride);
 }
 
-static void MC_avg_x16_mmxext (uint8_t * dest, uint8_t * ref,
-			       int stride, int height)
+static void MC_avg_x_16_mmxext (uint8_t * dest, uint8_t * ref,
+				int stride, int height)
 {
     MC_avg2_16 (height, dest, ref, stride, 1, CPU_MMXEXT);
 }
 
-static void MC_avg_x8_mmxext (uint8_t * dest, uint8_t * ref,
-			      int stride, int height)
+static void MC_avg_x_8_mmxext (uint8_t * dest, uint8_t * ref,
+			       int stride, int height)
 {
     MC_avg2_8 (height, dest, ref, stride, 1, CPU_MMXEXT);
 }
 
-static void MC_put_x16_mmxext (uint8_t * dest, uint8_t * ref,
-			       int stride, int height)
+static void MC_put_x_16_mmxext (uint8_t * dest, uint8_t * ref,
+				int stride, int height)
 {
     MC_put2_16 (height, dest, ref, stride, 1, CPU_MMXEXT);
 }
 
-static void MC_put_x8_mmxext (uint8_t * dest, uint8_t * ref,
-			      int stride, int height)
+static void MC_put_x_8_mmxext (uint8_t * dest, uint8_t * ref,
+			       int stride, int height)
 {
     MC_put2_8 (height, dest, ref, stride, 1, CPU_MMXEXT);
 }
 
-static void MC_avg_y16_mmxext (uint8_t * dest, uint8_t * ref,
-			       int stride, int height)
+static void MC_avg_y_16_mmxext (uint8_t * dest, uint8_t * ref,
+				int stride, int height)
 {
     MC_avg2_16 (height, dest, ref, stride, stride, CPU_MMXEXT);
 }
 
-static void MC_avg_y8_mmxext (uint8_t * dest, uint8_t * ref,
-			      int stride, int height)
+static void MC_avg_y_8_mmxext (uint8_t * dest, uint8_t * ref,
+			       int stride, int height)
 {
     MC_avg2_8 (height, dest, ref, stride, stride, CPU_MMXEXT);
 }
 
-static void MC_put_y16_mmxext (uint8_t * dest, uint8_t * ref,
-			       int stride, int height)
+static void MC_put_y_16_mmxext (uint8_t * dest, uint8_t * ref,
+				int stride, int height)
 {
     MC_put2_16 (height, dest, ref, stride, stride, CPU_MMXEXT);
 }
 
-static void MC_put_y8_mmxext (uint8_t * dest, uint8_t * ref,
-			      int stride, int height)
+static void MC_put_y_8_mmxext (uint8_t * dest, uint8_t * ref,
+			       int stride, int height)
 {
     MC_put2_8 (height, dest, ref, stride, stride, CPU_MMXEXT);
 }
 
-static void MC_avg_xy16_mmxext (uint8_t * dest, uint8_t * ref,
-				int stride, int height)
+static void MC_avg_xy_16_mmxext (uint8_t * dest, uint8_t * ref,
+				 int stride, int height)
 {
     MC_avg4_16 (height, dest, ref, stride, CPU_MMXEXT);
 }
 
-static void MC_avg_xy8_mmxext (uint8_t * dest, uint8_t * ref,
-			       int stride, int height)
+static void MC_avg_xy_8_mmxext (uint8_t * dest, uint8_t * ref,
+				int stride, int height)
 {
     MC_avg4_8 (height, dest, ref, stride, CPU_MMXEXT);
 }
 
-static void MC_put_xy16_mmxext (uint8_t * dest, uint8_t * ref,
-				int stride, int height)
+static void MC_put_xy_16_mmxext (uint8_t * dest, uint8_t * ref,
+				 int stride, int height)
 {
     MC_put4_16 (height, dest, ref, stride, CPU_MMXEXT);
 }
 
-static void MC_put_xy8_mmxext (uint8_t * dest, uint8_t * ref,
-			       int stride, int height)
+static void MC_put_xy_8_mmxext (uint8_t * dest, uint8_t * ref,
+				int stride, int height)
 {
     MC_put4_8 (height, dest, ref, stride, CPU_MMXEXT);
 }
 
 
-MOTION_COMP_EXTERN (mmxext)
+MPEG2_MC_EXTERN (mmxext)
 
 
 
-static void MC_avg_16_3dnow (uint8_t * dest, uint8_t * ref,
-			      int stride, int height)
+static void MC_avg_o_16_3dnow (uint8_t * dest, uint8_t * ref,
+			       int stride, int height)
 {
     MC_avg1_16 (height, dest, ref, stride, CPU_3DNOW);
 }
 
-static void MC_avg_8_3dnow (uint8_t * dest, uint8_t * ref,
-			     int stride, int height)
+static void MC_avg_o_8_3dnow (uint8_t * dest, uint8_t * ref,
+			      int stride, int height)
 {
     MC_avg1_8 (height, dest, ref, stride, CPU_3DNOW);
 }
 
-static void MC_put_16_3dnow (uint8_t * dest, uint8_t * ref,
-			      int stride, int height)
+static void MC_put_o_16_3dnow (uint8_t * dest, uint8_t * ref,
+			       int stride, int height)
 {
     MC_put1_16 (height, dest, ref, stride);
 }
 
-static void MC_put_8_3dnow (uint8_t * dest, uint8_t * ref,
-			     int stride, int height)
+static void MC_put_o_8_3dnow (uint8_t * dest, uint8_t * ref,
+			      int stride, int height)
 {
     MC_put1_8 (height, dest, ref, stride);
 }
 
-static void MC_avg_x16_3dnow (uint8_t * dest, uint8_t * ref,
+static void MC_avg_x_16_3dnow (uint8_t * dest, uint8_t * ref,
 			       int stride, int height)
 {
     MC_avg2_16 (height, dest, ref, stride, 1, CPU_3DNOW);
 }
 
-static void MC_avg_x8_3dnow (uint8_t * dest, uint8_t * ref,
+static void MC_avg_x_8_3dnow (uint8_t * dest, uint8_t * ref,
 			      int stride, int height)
 {
     MC_avg2_8 (height, dest, ref, stride, 1, CPU_3DNOW);
 }
 
-static void MC_put_x16_3dnow (uint8_t * dest, uint8_t * ref,
+static void MC_put_x_16_3dnow (uint8_t * dest, uint8_t * ref,
 			       int stride, int height)
 {
     MC_put2_16 (height, dest, ref, stride, 1, CPU_3DNOW);
 }
 
-static void MC_put_x8_3dnow (uint8_t * dest, uint8_t * ref,
+static void MC_put_x_8_3dnow (uint8_t * dest, uint8_t * ref,
 			      int stride, int height)
 {
     MC_put2_8 (height, dest, ref, stride, 1, CPU_3DNOW);
 }
 
-static void MC_avg_y16_3dnow (uint8_t * dest, uint8_t * ref,
+static void MC_avg_y_16_3dnow (uint8_t * dest, uint8_t * ref,
 			       int stride, int height)
 {
     MC_avg2_16 (height, dest, ref, stride, stride, CPU_3DNOW);
 }
 
-static void MC_avg_y8_3dnow (uint8_t * dest, uint8_t * ref,
+static void MC_avg_y_8_3dnow (uint8_t * dest, uint8_t * ref,
 			      int stride, int height)
 {
     MC_avg2_8 (height, dest, ref, stride, stride, CPU_3DNOW);
 }
 
-static void MC_put_y16_3dnow (uint8_t * dest, uint8_t * ref,
+static void MC_put_y_16_3dnow (uint8_t * dest, uint8_t * ref,
 			       int stride, int height)
 {
     MC_put2_16 (height, dest, ref, stride, stride, CPU_3DNOW);
 }
 
-static void MC_put_y8_3dnow (uint8_t * dest, uint8_t * ref,
+static void MC_put_y_8_3dnow (uint8_t * dest, uint8_t * ref,
 			      int stride, int height)
 {
     MC_put2_8 (height, dest, ref, stride, stride, CPU_3DNOW);
 }
 
-static void MC_avg_xy16_3dnow (uint8_t * dest, uint8_t * ref,
+static void MC_avg_xy_16_3dnow (uint8_t * dest, uint8_t * ref,
 				int stride, int height)
 {
     MC_avg4_16 (height, dest, ref, stride, CPU_3DNOW);
 }
 
-static void MC_avg_xy8_3dnow (uint8_t * dest, uint8_t * ref,
+static void MC_avg_xy_8_3dnow (uint8_t * dest, uint8_t * ref,
 			       int stride, int height)
 {
     MC_avg4_8 (height, dest, ref, stride, CPU_3DNOW);
 }
 
-static void MC_put_xy16_3dnow (uint8_t * dest, uint8_t * ref,
+static void MC_put_xy_16_3dnow (uint8_t * dest, uint8_t * ref,
 				int stride, int height)
 {
     MC_put4_16 (height, dest, ref, stride, CPU_3DNOW);
 }
 
-static void MC_put_xy8_3dnow (uint8_t * dest, uint8_t * ref,
+static void MC_put_xy_8_3dnow (uint8_t * dest, uint8_t * ref,
 			       int stride, int height)
 {
     MC_put4_8 (height, dest, ref, stride, CPU_3DNOW);
 }
 
 
-MOTION_COMP_EXTERN (3dnow)
+MPEG2_MC_EXTERN (3dnow)
 
 #endif

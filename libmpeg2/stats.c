@@ -1,8 +1,10 @@
 /*
  * stats.c
- * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
+ * See http://libmpeg2.sourceforge.net/ for updates.
  *
  * mpeg2dec is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -150,7 +152,7 @@ static void stats_group (uint8_t * buffer)
 	     (buffer[4] & 0x20) ? " broken_link" : "");
 }
 
-static void stats_slice (uint8_t code, uint8_t * buffer)
+static void stats_slice (int code, uint8_t * buffer)
 {
     /* fprintf (stderr, " (slice %d)\n", code); */
 }
@@ -255,7 +257,7 @@ static void stats_picture_coding_extension (uint8_t * buffer)
 	     alternate_scan, repeat_first_field, progressive_frame);
 }
 
-void stats_header (uint8_t code, uint8_t * buffer)
+void mpeg2_stats (int code, uint8_t * buffer)
 {
     if (! (debug_is_on ()))
 	return;

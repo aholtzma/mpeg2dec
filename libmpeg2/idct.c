@@ -1,12 +1,14 @@
 /*
  * idct.c
- * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * Portions of this code are from the MPEG software simulation group
  * idct implementation. This code will be replaced with a new
  * implementation soon.
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
+ * See http://libmpeg2.sourceforge.net/ for updates.
  *
  * mpeg2dec is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,6 +42,7 @@
 #include "config.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <inttypes.h>
 
 #include "mpeg2_internal.h"
@@ -53,47 +56,11 @@
 #define W7 565  /* 2048*sqrt (2)*cos (7*pi/16) */
 
 /* idct main entry point  */
-void (*idct_block_copy) (int16_t * block, uint8_t * dest, int stride);
-void (*idct_block_add) (int16_t * block, uint8_t * dest, int stride);
-
-static void idct_block_copy_c (int16_t *block, uint8_t * dest, int stride);
-static void idct_block_add_c (int16_t *block, uint8_t * dest, int stride);
+void (* mpeg2_idct_copy) (int16_t * block, uint8_t * dest, int stride);
+void (* mpeg2_idct_add) (int16_t * block, uint8_t * dest, int stride);
 
 static uint8_t clip_lut[1024];
 #define CLIP(i) ((clip_lut+384)[ (i)])
-
-void idct_init (void)
-{
-#ifdef ARCH_X86
-    if (config.flags & MM_ACCEL_X86_MMXEXT) {
-	fprintf (stderr, "Using MMXEXT for IDCT transform\n");
-	idct_block_copy = idct_block_copy_mmxext;
-	idct_block_add = idct_block_add_mmxext;
-	idct_mmx_init ();
-    } else if (config.flags & MM_ACCEL_X86_MMX) {
-	fprintf (stderr, "Using MMX for IDCT transform\n");
-	idct_block_copy = idct_block_copy_mmx;
-	idct_block_add = idct_block_add_mmx;
-	idct_mmx_init ();
-    } else
-#endif
-#ifdef LIBMPEG2_MLIB
-    if (config.flags & MM_ACCEL_MLIB) {
-	fprintf (stderr, "Using mlib for IDCT transform\n");
-	idct_block_copy = idct_block_copy_mlib;
-	idct_block_add = idct_block_add_mlib;
-    } else
-#endif
-    {
-	int i;
-
-	fprintf (stderr, "No accelerated IDCT transform found\n");
-	idct_block_copy = idct_block_copy_c;
-	idct_block_add = idct_block_add_c;
-	for (i = -384; i < 640; i++)
-	    clip_lut[i+384] = (i < 0) ? 0 : ((i > 255) ? 255 : i);
-    }
-}
 
 /* row (horizontal) IDCT
  *
@@ -235,7 +202,7 @@ static void inline idct_col (int16_t *block)
     block[8*7] = (x7 - x1) >> 14;
 }
 
-void idct_block_copy_c (int16_t * block, uint8_t * dest, int stride)
+static void mpeg2_idct_copy_c (int16_t * block, uint8_t * dest, int stride)
 {
     int i;
 
@@ -261,7 +228,7 @@ void idct_block_copy_c (int16_t * block, uint8_t * dest, int stride)
     } while (--i);
 }
 
-void idct_block_add_c (int16_t * block, uint8_t * dest, int stride)
+static void mpeg2_idct_add_c (int16_t * block, uint8_t * dest, int stride)
 {
     int i;
 
@@ -285,4 +252,54 @@ void idct_block_add_c (int16_t * block, uint8_t * dest, int stride)
 	dest += stride;
 	block += 8;
     } while (--i);
+}
+
+void mpeg2_idct_init (uint32_t mm_accel)
+{
+#ifdef ARCH_X86
+    if (mm_accel & MM_ACCEL_X86_MMXEXT) {
+	fprintf (stderr, "Using MMXEXT for IDCT transform\n");
+	mpeg2_idct_copy = mpeg2_idct_copy_mmxext;
+	mpeg2_idct_add = mpeg2_idct_add_mmxext;
+	mpeg2_idct_mmx_init ();
+    } else if (mm_accel & MM_ACCEL_X86_MMX) {
+	fprintf (stderr, "Using MMX for IDCT transform\n");
+	mpeg2_idct_copy = mpeg2_idct_copy_mmx;
+	mpeg2_idct_add = mpeg2_idct_add_mmx;
+	mpeg2_idct_mmx_init ();
+    } else
+#endif
+#ifdef ARCH_PPC
+    if (mm_accel & MM_ACCEL_PPC_ALTIVEC) {
+	fprintf (stderr, "Using altivec for IDCT transform\n");
+	mpeg2_idct_copy = mpeg2_idct_copy_altivec;
+	mpeg2_idct_add = mpeg2_idct_add_altivec;
+	mpeg2_idct_altivec_init ();
+    } else
+#endif
+#ifdef LIBMPEG2_MLIB
+    if (mm_accel & MM_ACCEL_MLIB) {
+	char * env_var;
+
+	env_var = getenv ("MLIB_NON_IEEE");
+
+	if (env_var == NULL) {
+	    fprintf (stderr, "Using mlib for IDCT transform\n");
+	    mpeg2_idct_add = mpeg2_idct_add_mlib;
+	} else {
+	    fprintf (stderr, "Using non-IEEE mlib for IDCT transform\n");
+	    mpeg2_idct_add = mpeg2_idct_add_mlib_non_ieee;
+	}
+	mpeg2_idct_copy = mpeg2_idct_copy_mlib_non_ieee;
+    } else
+#endif
+    {
+	int i;
+
+	fprintf (stderr, "No accelerated IDCT transform found\n");
+	mpeg2_idct_copy = mpeg2_idct_copy_c;
+	mpeg2_idct_add = mpeg2_idct_add_c;
+	for (i = -384; i < 640; i++)
+	    clip_lut[i+384] = (i < 0) ? 0 : ((i > 255) ? 255 : i);
+    }
 }

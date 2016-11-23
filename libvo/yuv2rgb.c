@@ -1,8 +1,10 @@
 /*
  * yuv2rgb.c
- * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
+ * See http://libmpeg2.sourceforge.net/ for updates.
  *
  * mpeg2dec is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +27,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
-#include "yuv2rgb.h"
 #include "mm_accel.h"
 #include "video_out.h"
 #include "video_out_internal.h"
@@ -43,15 +44,15 @@ const int32_t Inverse_Table_6_9[8][4] = {
     {117579, 136230, 16907, 35559}  /* SMPTE 240M (1987) */
 };
 
-static void yuv2rgb_c_init (int bpp, int mode);
-
-yuv2rgb_fun yuv2rgb;
+void (* yuv2rgb) (uint8_t * image, uint8_t * py, uint8_t * pu, uint8_t * pv,
+		  int h_size, int v_size,
+		  int rgb_stride, int y_stride, int uv_stride);
 
 static void (* yuv2rgb_c_internal) (uint8_t *, uint8_t *,
 				    uint8_t *, uint8_t *,
 				    void *, void *, int);
 
-static void yuv2rgb_c (void * dst, uint8_t * py,
+static void yuv2rgb_c (uint8_t * dst, uint8_t * py,
 		       uint8_t * pu, uint8_t * pv,
 		       int width, int height,
 		       int rgb_stride, int y_stride, int uv_stride)
@@ -59,42 +60,13 @@ static void yuv2rgb_c (void * dst, uint8_t * py,
     height >>= 1;
     do {
 	yuv2rgb_c_internal (py, py + y_stride, pu, pv,
-			    dst, ((uint8_t *)dst) + rgb_stride, width);
+			    dst, dst + rgb_stride, width);
 
 	py += 2 * y_stride;
 	pu += uv_stride;
 	pv += uv_stride;
-	dst = ((uint8_t *)dst) + 2 * rgb_stride;
+	dst += 2 * rgb_stride;
     } while (--height);
-}
-
-void yuv2rgb_init (int bpp, int mode) 
-{
-    yuv2rgb = NULL;
-#ifdef ARCH_X86
-    if ((yuv2rgb == NULL) && (vo_mm_accel & MM_ACCEL_X86_MMXEXT)) {
-	yuv2rgb = yuv2rgb_init_mmxext (bpp, mode);
-	if (yuv2rgb != NULL)
-	    fprintf (stderr, "Using MMXEXT for colorspace transform\n");
-    }
-    if ((yuv2rgb == NULL) && (vo_mm_accel & MM_ACCEL_X86_MMX)) {
-	yuv2rgb = yuv2rgb_init_mmx (bpp, mode);
-	if (yuv2rgb != NULL)
-	    fprintf (stderr, "Using MMX for colorspace transform\n");
-    }
-#endif
-#ifdef LIBVO_MLIB
-    if ((yuv2rgb == NULL) && (vo_mm_accel & MM_ACCEL_MLIB)) {
-	yuv2rgb = yuv2rgb_init_mlib (bpp, mode);
-	if (yuv2rgb != NULL)
-	    fprintf (stderr, "Using mlib for colorspace transform\n");
-    }
-#endif
-    if (yuv2rgb == NULL) {
-	fprintf (stderr, "No accelerated colorspace conversion found\n");
-	yuv2rgb_c_init (bpp, mode);
-	yuv2rgb = (yuv2rgb_fun) yuv2rgb_c;
-    }
 }
 
 void * table_rV[256];
@@ -412,5 +384,32 @@ static void yuv2rgb_c_init (int bpp, int mode)
 	table_gV[i] = entry_size * div_round (cgv * (i-128), 76309);
 	table_bU[i] = (((uint8_t *)table_b) +
 		       entry_size * div_round (cbu * (i-128), 76309));
+    }
+
+    yuv2rgb = yuv2rgb_c;
+}
+
+void yuv2rgb_init (int bpp, int mode) 
+{
+    yuv2rgb = NULL;
+#ifdef ARCH_X86
+    if ((yuv2rgb == NULL) && (vo_mm_accel & MM_ACCEL_X86_MMXEXT)) {
+	if (! yuv2rgb_init_mmxext (bpp, mode))
+	    fprintf (stderr, "Using MMXEXT for colorspace transform\n");
+    }
+    if ((yuv2rgb == NULL) && (vo_mm_accel & MM_ACCEL_X86_MMX)) {
+	if (! yuv2rgb_init_mmx (bpp, mode))
+	    fprintf (stderr, "Using MMX for colorspace transform\n");
+    }
+#endif
+#ifdef LIBVO_MLIB
+    if ((yuv2rgb == NULL) && (vo_mm_accel & MM_ACCEL_MLIB)) {
+	if (! yuv2rgb_init_mlib (bpp, mode))
+	    fprintf (stderr, "Using mlib for colorspace transform\n");
+    }
+#endif
+    if (yuv2rgb == NULL) {
+	fprintf (stderr, "No accelerated colorspace conversion found\n");
+	yuv2rgb_c_init (bpp, mode);
     }
 }

@@ -1,8 +1,10 @@
 /*
- * yuv2rgb.h
- * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * tendra.h
+ * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
+ * See http://libmpeg2.sourceforge.net/ for updates.
  *
  * mpeg2dec is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,17 +21,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#define MODE_RGB  0x1
-#define MODE_BGR  0x2
+#pragma TenDRA begin
+#pragma TenDRA longlong type warning
 
-typedef void (* yuv2rgb_fun) (uint8_t * image, uint8_t * py,
-			      uint8_t * pu, uint8_t * pv,
-			      int h_size, int v_size,
-			      int rgb_stride, int y_stride, int uv_stride);
+#ifdef TenDRA_check
 
-extern yuv2rgb_fun yuv2rgb;
+#pragma TenDRA conversion analysis (pointer-int explicit) off
+#pragma TenDRA implicit function declaration off
 
-void yuv2rgb_init (int bpp, int mode);
-yuv2rgb_fun yuv2rgb_init_mmxext (int bpp, int mode);
-yuv2rgb_fun yuv2rgb_init_mmx (int bpp, int mode);
-yuv2rgb_fun yuv2rgb_init_mlib (int bpp, int mode);
+/* avoid the "No declarations in translation unit" problem */
+int TenDRA;
+
+#endif /* TenDRA_check */

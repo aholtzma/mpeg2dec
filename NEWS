@@ -1,3 +1,20 @@
+mpeg2dec-0.2.1 Sun Mar 17 23:24:04 PST 2002 
+
+Two major new features: First, a much higher tolerance to corrupted
+streams. Instead of just segfaulting, we should now be able to keep
+going after errors. There is no test suite for this feature yet though.
+
+Second, the altivec optimizations provide a huge speedup (more than
+2.5x) on ppc g4 machines.
+
+High definition video streams are now supported.
+
+There is also native support for compiling using VC++.
+
+And, the libvo interface has been slightly extended so people can more
+easily make use of the various mpeg flags.
+
+
 mpeg2dec-0.2.0 Thu Feb 15 20:12:34 PST 2001 
 
 The most important new feature is the support for field

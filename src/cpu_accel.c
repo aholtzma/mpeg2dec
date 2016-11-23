@@ -1,8 +1,10 @@
 /*
  * cpu_accel.c
- * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
+ * See http://libmpeg2.sourceforge.net/ for updates.
  *
  * mpeg2dec is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,12 +28,13 @@
 #include "mm_accel.h"
 
 #ifdef ARCH_X86
-static uint32_t x86_accel (void)
+static uint32_t arch_accel (void)
 {
     uint32_t eax, ebx, ecx, edx;
     int AMD;
     uint32_t caps;
 
+#ifndef PIC
 #define cpuid(op,eax,ebx,ecx,edx)	\
     asm ("cpuid"			\
 	 : "=a" (eax),			\
@@ -40,17 +43,32 @@ static uint32_t x86_accel (void)
 	   "=d" (edx)			\
 	 : "a" (op)			\
 	 : "cc")
+#else	/* PIC version : save ebx */
+#define cpuid(op,eax,ebx,ecx,edx)	\
+    asm ("pushl %%ebx\n\t"		\
+	 "cpuid\n\t"			\
+	 "movl %%ebx,%1\n\t"		\
+	 "popl %%ebx"			\
+	 : "=a" (eax),			\
+	   "=r" (ebx),			\
+	   "=c" (ecx),			\
+	   "=d" (edx)			\
+	 : "a" (op)			\
+	 : "cc")
+#endif
 
     asm ("pushfl\n\t"
+	 "pushfl\n\t"
 	 "popl %0\n\t"
 	 "movl %0,%1\n\t"
 	 "xorl $0x200000,%0\n\t"
 	 "pushl %0\n\t"
 	 "popfl\n\t"
 	 "pushfl\n\t"
-	 "popl %0"
-         : "=a" (eax),
-	   "=b" (ebx)
+	 "popl %0\n\t"
+	 "popfl"
+         : "=r" (eax),
+	   "=r" (ebx)
 	 :
 	 : "cc");
 
@@ -85,17 +103,55 @@ static uint32_t x86_accel (void)
 
     return caps;
 }
-#endif
+#endif /* ARCH_X86 */
+
+#ifdef ARCH_PPC
+#include <signal.h>
+#include <setjmp.h>
+
+static sigjmp_buf jmpbuf;
+static volatile sig_atomic_t canjump = 0;
+
+static RETSIGTYPE sigill_handler (int sig)
+{
+    if (!canjump) {
+	signal (sig, SIG_DFL);
+	raise (sig);
+    }
+
+    canjump = 0;
+    siglongjmp (jmpbuf, 1);
+}
+
+static uint32_t arch_accel (void)
+{
+    signal (SIGILL, sigill_handler);
+    if (sigsetjmp (jmpbuf, 1)) {
+	signal (SIGILL, SIG_DFL);
+	return 0;
+    }
+
+    canjump = 1;
+
+    asm volatile ("mtspr 256, %0\n\t"
+		  "vand %%v0, %%v0, %%v0"
+		  :
+		  : "r" (-1));
+
+    signal (SIGILL, SIG_DFL);
+    return MM_ACCEL_PPC_ALTIVEC;
+}
+#endif /* ARCH_PPC */
 
 uint32_t mm_accel (void)
 {
-#ifdef ARCH_X86
+#if defined (ARCH_X86) || defined (ARCH_PPC)
     static int got_accel = 0;
     static uint32_t accel;
 
     if (!got_accel) {
 	got_accel = 1;
-	accel = x86_accel ();
+	accel = arch_accel ();
     }
 
     return accel;

@@ -1,11 +1,12 @@
 /*
  * yuv2rgb_mmx.c
- * Copyright (C) 2000-2001 Silicon Integrated System Corp.
+ * Copyright (C) 2000-2002 Silicon Integrated System Corp.
  * All Rights Reserved.
  *
  * Author: Olie Lho <ollie@sis.com.tw>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
+ * See http://libmpeg2.sourceforge.net/ for updates.
  *
  * mpeg2dec is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +33,8 @@
 
 #include "attributes.h"
 #include "mmx.h"
-#include "yuv2rgb.h"
+#include "video_out.h"
+#include "video_out_internal.h"
 
 #define CPU_MMXEXT 0
 #define CPU_MMX 1
@@ -49,14 +51,14 @@ do {				\
 
 static inline void mmx_yuv2rgb (uint8_t * py, uint8_t * pu, uint8_t * pv)
 {
-    static mmx_t mmx_80w = {0x0080008000800080};
-    static mmx_t mmx_U_green = {0xf37df37df37df37d};
-    static mmx_t mmx_U_blue = {0x4093409340934093};
-    static mmx_t mmx_V_red = {0x3312331233123312};
-    static mmx_t mmx_V_green = {0xe5fce5fce5fce5fc};
-    static mmx_t mmx_10w = {0x1010101010101010};
-    static mmx_t mmx_00ffw = {0x00ff00ff00ff00ff};
-    static mmx_t mmx_Y_coeff = {0x253f253f253f253f};
+    static mmx_t mmx_80w = {0x0080008000800080LL};
+    static mmx_t mmx_U_green = {0xf37df37df37df37dLL};
+    static mmx_t mmx_U_blue = {0x4093409340934093LL};
+    static mmx_t mmx_V_red = {0x3312331233123312LL};
+    static mmx_t mmx_V_green = {0xe5fce5fce5fce5fcLL};
+    static mmx_t mmx_10w = {0x1010101010101010LL};
+    static mmx_t mmx_00ffw = {0x00ff00ff00ff00ffLL};
+    static mmx_t mmx_Y_coeff = {0x253f253f253f253fLL};
 
     movd_m2r (*pu, mm0);		// mm0 = 00 00 00 00 u3 u2 u1 u0
     movd_m2r (*pv, mm1);		// mm1 = 00 00 00 00 v3 v2 v1 v0
@@ -125,9 +127,9 @@ static inline void mmx_yuv2rgb (uint8_t * py, uint8_t * pu, uint8_t * pv)
 
 static inline void mmx_unpack_16rgb (uint8_t * image, int cpu)
 {
-    static mmx_t mmx_bluemask = {0xf8f8f8f8f8f8f8f8};
-    static mmx_t mmx_greenmask = {0xfcfcfcfcfcfcfcfc};
-    static mmx_t mmx_redmask = {0xf8f8f8f8f8f8f8f8};
+    static mmx_t mmx_bluemask = {0xf8f8f8f8f8f8f8f8LL};
+    static mmx_t mmx_greenmask = {0xfcfcfcfcfcfcfcfcLL};
+    static mmx_t mmx_redmask = {0xf8f8f8f8f8f8f8f8LL};
 
     /*
      * convert RGB plane to RGB 16 bits
@@ -297,23 +299,27 @@ static void mmx_argb32 (uint8_t * image,
 		   rgb_stride, y_stride, uv_stride, CPU_MMX);
 }
 
-yuv2rgb_fun yuv2rgb_init_mmxext (int bpp, int mode)
+int yuv2rgb_init_mmxext (int bpp, int mode)
 {
-    if ((bpp == 16) && (mode == MODE_RGB))
-	return mmxext_rgb16;
-    else if ((bpp == 32) && (mode == MODE_RGB))
-	return mmxext_argb32;
-
-    return NULL; /* Fallback to C */
+    if ((bpp == 16) && (mode == MODE_RGB)) {
+	yuv2rgb = mmxext_rgb16;
+	return 0;
+    } else if ((bpp == 32) && (mode == MODE_RGB)) {
+	yuv2rgb = mmxext_argb32;
+	return 0;
+    } else
+	return 1;	/* Fallback to C */
 }
 
-yuv2rgb_fun yuv2rgb_init_mmx (int bpp, int mode)
+int yuv2rgb_init_mmx (int bpp, int mode)
 {
-    if ((bpp == 16) && (mode == MODE_RGB))
-	return mmx_rgb16;
-    else if ((bpp == 32) && (mode == MODE_RGB))
-	return mmx_argb32;
-
-    return NULL; /* Fallback to C */
+    if ((bpp == 16) && (mode == MODE_RGB)) {
+	yuv2rgb = mmx_rgb16;
+	return 0;
+    } else if ((bpp == 32) && (mode == MODE_RGB)) {
+	yuv2rgb = mmx_argb32;
+	return 0;
+    } else
+	return 1;	/* Fallback to C */
 }
 #endif

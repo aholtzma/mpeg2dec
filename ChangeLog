@@ -1,3 +1,11 @@
+mpeg2dec-0.2.1 Sun Mar 17 23:24:04 PST 2002
+-altivec optimizations - provides 2.5x speedup for g4 processors
+-fixed MC code - should not crash on bad streams anymore
+-much higher tolerance to corrupted streams
+-support for high definition streams
+-support for VC++ compiler
+-various mpeg flags exported to libvo
+
 mpeg2dec-0.2.0 Thu Feb 15 20:12:34 PST 2001
 -support for field pictures
 -new 3Dnow/SSE accelerations for motion compensation and color conversion

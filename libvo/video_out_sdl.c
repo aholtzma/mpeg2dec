@@ -1,12 +1,13 @@
 /*
  * video_out_sdl.c
  *
- * Copyright (C) 2000-2001 Ryan C. Gordon <icculus@lokigames.com> and
+ * Copyright (C) 2000-2002 Ryan C. Gordon <icculus@lokigames.com> and
  *                         Dominik Schnitzer <aeneas@linuxvideo.org>
  *
  * SDL info, source, and binaries can be found at http://www.libsdl.org/
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
+ * See http://libmpeg2.sourceforge.net/ for updates.
  *
  * mpeg2dec is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,8 +31,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <inttypes.h>
 #include <SDL/SDL.h>
+#include <inttypes.h>
 
 #include "video_out.h"
 #include "video_out_internal.h"
@@ -160,8 +161,8 @@ vo_instance_t * vo_sdl_open (void)
     instance->surface = NULL;
     instance->sdlflags = SDL_HWSURFACE | SDL_RESIZABLE;
 
-    setenv("SDL_VIDEO_YUV_HWACCEL", "1", 1);
-    setenv("SDL_VIDEO_X11_NODIRECTCOLOR", "1", 1);
+    putenv("SDL_VIDEO_YUV_HWACCEL=1");
+    putenv("SDL_VIDEO_X11_NODIRECTCOLOR=1");
 
     if (SDL_Init (SDL_INIT_VIDEO)) {
 	fprintf (stderr, "sdl video initialization failed.\n");

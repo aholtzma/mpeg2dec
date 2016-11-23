@@ -1,9 +1,10 @@
 CFLAGS = @CFLAGS@ @LIBMPEG2_CFLAGS@
 
 lib_LTLIBRARIES = libmpeg2.la
-libmpeg2_la_SOURCES = decode.c header.c stats.c slice.c \
+libmpeg2_la_SOURCES = decode.c header.c stats.c cpu_state.c slice.c \
 		      motion_comp.c motion_comp_mlib.c motion_comp_mmx.c \
-		      idct.c idct_mlib.c idct_mmx.c
+		      motion_comp_altivec.c \
+		      idct.c idct_mlib.c idct_mmx.c idct_altivec.c
 # the source ordering seems to impact the speed.
 # On my setup the following ordering is about 2% faster.
 # I'll have to investigate...

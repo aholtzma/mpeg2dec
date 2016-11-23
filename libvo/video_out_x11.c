@@ -1,8 +1,10 @@
 /*
  * video_out_x11.c
- * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
+ * See http://libmpeg2.sourceforge.net/ for updates.
  *
  * mpeg2dec is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,11 +29,10 @@
 #include <stdlib.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
-#include <inttypes.h>
-
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <X11/extensions/XShm.h>
+#include <inttypes.h>
 /* since it doesn't seem to be defined on some platforms */
 int XShmGetEventBase (Display *);
 
@@ -43,7 +44,6 @@ int XShmGetEventBase (Display *);
 
 #include "video_out.h"
 #include "video_out_internal.h"
-#include "yuv2rgb.h"
 
 typedef struct x11_frame_s {
     vo_frame_t vo;

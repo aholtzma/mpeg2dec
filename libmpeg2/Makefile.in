@@ -1,4 +1,4 @@
-# Makefile.in generated automatically by automake 1.4 from Makefile.am
+# Makefile.in generated automatically by automake 1.4-p4 from Makefile.am
 
 # Copyright (C) 1994, 1995-8, 1999 Free Software Foundation, Inc.
 # This Makefile.in is free software; the Free Software Foundation
@@ -62,20 +62,24 @@ host_triplet = @host@
 AS = @AS@
 CC = @CC@
 DLLTOOL = @DLLTOOL@
+ECHO = @ECHO@
+EXEEXT = @EXEEXT@
 INCLUDES = @INCLUDES@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 OBJDUMP = @OBJDUMP@
+OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
+STRIP = @STRIP@
 VERSION = @VERSION@
 
 CFLAGS = @CFLAGS@ @LIBMPEG2_CFLAGS@
 
 lib_LTLIBRARIES = libmpeg2.la
-libmpeg2_la_SOURCES = decode.c header.c stats.c slice.c 		      motion_comp.c motion_comp_mlib.c motion_comp_mmx.c 		      idct.c idct_mlib.c idct_mmx.c
+libmpeg2_la_SOURCES = decode.c header.c stats.c cpu_state.c slice.c 		      motion_comp.c motion_comp_mlib.c motion_comp_mmx.c 		      motion_comp_altivec.c 		      idct.c idct_mlib.c idct_mmx.c idct_altivec.c
 
 # the source ordering seems to impact the speed.
 # On my setup the following ordering is about 2% faster.
@@ -97,9 +101,9 @@ CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 libmpeg2_la_DEPENDENCIES = 
-libmpeg2_la_OBJECTS =  decode.lo header.lo stats.lo slice.lo \
-motion_comp.lo motion_comp_mlib.lo motion_comp_mmx.lo idct.lo \
-idct_mlib.lo idct_mmx.lo
+libmpeg2_la_OBJECTS =  decode.lo header.lo stats.lo cpu_state.lo \
+slice.lo motion_comp.lo motion_comp_mlib.lo motion_comp_mmx.lo \
+motion_comp_altivec.lo idct.lo idct_mlib.lo idct_mmx.lo idct_altivec.lo
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -116,7 +120,7 @@ OBJECTS = $(libmpeg2_la_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
-.SUFFIXES: .S .c .lo .o .s
+.SUFFIXES: .S .c .lo .o .obj .s
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
 	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps libmpeg2/Makefile
 
@@ -153,6 +157,11 @@ uninstall-libLTLIBRARIES:
 .c.o:
 	$(COMPILE) -c $<
 
+# FIXME: We should only use cygpath when building on Windows,
+# and only if it is available.
+.c.obj:
+	$(COMPILE) -c `cygpath -w $<`
+
 .s.o:
 	$(COMPILE) -c $<
 
@@ -161,6 +170,7 @@ uninstall-libLTLIBRARIES:
 
 mostlyclean-compile:
 	-rm -f *.o core *.core
+	-rm -f *.$(OBJEXT)
 
 clean-compile:
 
@@ -235,18 +245,23 @@ distdir: $(DISTFILES)
 	    || cp -p $$d/$$file $(distdir)/$$file || :; \
 	  fi; \
 	done
+cpu_state.lo cpu_state.o : cpu_state.c ../include/config.h \
+	mpeg2_internal.h ../include/mm_accel.h ../include/attributes.h \
+	../include/mmx.h
 decode.lo decode.o : decode.c ../include/config.h ../include/video_out.h \
-	../include/mpeg2.h mpeg2_internal.h ../include/mm_accel.h \
-	../include/attributes.h ../include/mmx.h
+	../include/mpeg2.h mpeg2_internal.h
 header.lo header.o : header.c ../include/config.h mpeg2_internal.h \
 	../include/attributes.h
 idct.lo idct.o : idct.c ../include/config.h mpeg2_internal.h \
 	../include/mm_accel.h
+idct_altivec.lo idct_altivec.o : idct_altivec.c ../include/config.h
 idct_mlib.lo idct_mlib.o : idct_mlib.c ../include/config.h
 idct_mmx.lo idct_mmx.o : idct_mmx.c ../include/config.h mpeg2_internal.h \
 	../include/attributes.h ../include/mmx.h
 motion_comp.lo motion_comp.o : motion_comp.c ../include/config.h \
 	mpeg2_internal.h ../include/mm_accel.h
+motion_comp_altivec.lo motion_comp_altivec.o : motion_comp_altivec.c \
+	../include/config.h
 motion_comp_mlib.lo motion_comp_mlib.o : motion_comp_mlib.c \
 	../include/config.h
 motion_comp_mmx.lo motion_comp_mmx.o : motion_comp_mmx.c \

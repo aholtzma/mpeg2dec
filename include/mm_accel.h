@@ -1,8 +1,10 @@
 /*
  * mm_accel.h
- * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
+ * See http://libmpeg2.sourceforge.net/ for updates.
  *
  * mpeg2dec is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +21,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#ifndef MM_ACCEL_H
+#define MM_ACCEL_H
+
 /* generic accelerations */
 #define MM_ACCEL_MLIB		0x00000001
 
@@ -27,4 +32,9 @@
 #define MM_ACCEL_X86_3DNOW	0x40000000
 #define MM_ACCEL_X86_MMXEXT	0x20000000
 
+/* powerpc accelerations */
+#define MM_ACCEL_PPC_ALTIVEC	0x80000000
+
 uint32_t mm_accel (void);
+
+#endif /* MM_ACCEL_H */
