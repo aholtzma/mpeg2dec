@@ -1,13 +1,12 @@
 Aaron Holtzman <aholtzma@ess.engr.uvic.ca> started the project and
-	made the initial working implementation.
+made the initial working implementation.
 
 Michel Lespinasse <walken@zoy.org> did large changes for speed and
-	mpeg conformance and is the current maintainer.
+mpeg conformance and is the current maintainer.
 
 Other contributors include :
 
 	Bruno Barreyra <barreyra@ufl.edu> - build fixes
-	Colin Cross <colin@mit.edu> - 3dfx output code
 	Stephen Crowley <stephenc@dns2.digitalpassage.com> - build fixes
 	Didier Gautheron <dgautheron@magic.fr> - bug fixes
 	Ryan C. Gordon <icculus@lokigames.com> - SDL support
@@ -21,6 +20,7 @@ Other contributors include :
 	Bajusz Peter <hyp-x@inf.bme.hu> - motion comp fixes
 	Franck Sicard <Franck.Sicard@miniruth.solsoft.fr> - x11 fixes
 	Brion Vibber <brion@gizmo.usc.edu> - x11 fixes
+	Martin Vogt <mvogt@rhrk.uni-kl.de> - reentrancy fixes
 	Fredrik Vraalsen <vraalsen@cs.uiuc.edu> - general hackage and stuff
 
 (let me know if I forgot anyone)

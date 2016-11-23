@@ -1,6 +1,6 @@
 /*
- * idct_mlib.h
- * Copyright (C) 1999 Håkan Hjort <d95hjort@dtek.chalmers.se>
+ * attributes.h
+ * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
  *
@@ -19,5 +19,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-void idct_block_copy_mlib (int16_t * block, uint8_t * dest, int stride);
-void idct_block_add_mlib (int16_t * block, uint8_t * dest, int stride);
+/* use gcc attribs to align critical data structures */
+#ifdef ATTRIBUTE_ALIGNED_MAX
+#define ATTR_ALIGN(align) __attribute__ ((__aligned__ ((ATTRIBUTE_ALIGNED_MAX < align) ? ATTRIBUTE_ALIGNED_MAX : align)))
+#else
+#define ATTR_ALIGN(align)
+#endif

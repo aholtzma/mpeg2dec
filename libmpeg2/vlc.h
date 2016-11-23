@@ -1,6 +1,6 @@
 /*
  * vlc.h
- * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
  *
@@ -19,47 +19,39 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-// these are actually declared static in slice.c
-extern uint32_t bitstream_buf;
-extern int bitstream_bits;
-extern uint8_t * bitstream_ptr;
-
-static inline uint32_t getword (void)
-{
-    uint32_t value;
-
-    value = (bitstream_ptr[0] << 8) | bitstream_ptr[1];
-    bitstream_ptr += 2;
-    return value;
-}
-
-static inline void bitstream_init (uint8_t * start)
-{
-    bitstream_ptr = start;
-    bitstream_bits = 0;
-    bitstream_buf = getword () << 16;
-}
-
-// make sure that there are at least 16 valid bits in bit_buf
-#define NEEDBITS(bit_buf,bits)		\
-do {					\
-    if (bits > 0) {			\
-	bit_buf |= getword () << bits;	\
-	bits -= 16;			\
-    }					\
+#define GETWORD(bit_buf,shift,bit_ptr)				\
+do {								\
+    bit_buf |= ((bit_ptr[0] << 8) | bit_ptr[1]) << (shift);	\
+    bit_ptr += 2;						\
 } while (0)
 
-// remove num valid bits from bit_buf
+static inline void bitstream_init (picture_t * picture, uint8_t * start)
+{
+    picture->bitstream_buf = 0;    GETWORD (picture->bitstream_buf, 16, start);
+    picture->bitstream_ptr = start;
+    picture->bitstream_bits = 0;
+}
+
+/* make sure that there are at least 16 valid bits in bit_buf */
+#define NEEDBITS(bit_buf,bits,bit_ptr)		\
+do {						\
+    if (bits > 0) {				\
+	GETWORD (bit_buf, bits, bit_ptr);	\
+	bits -= 16;				\
+    }						\
+} while (0)
+
+/* remove num valid bits from bit_buf */
 #define DUMPBITS(bit_buf,bits,num)	\
 do {					\
     bit_buf <<= (num);			\
     bits += (num);			\
 } while (0)
 
-// take num bits from the high part of bit_buf and zero extend them
+/* take num bits from the high part of bit_buf and zero extend them */
 #define UBITS(bit_buf,num) (((uint32_t)(bit_buf)) >> (32 - (num)))
 
-// take num bits from the high part of bit_buf and sign extend them
+/* take num bits from the high part of bit_buf and sign extend them */
 #define SBITS(bit_buf,num) (((int32_t)(bit_buf)) >> (32 - (num)))
 
 typedef struct {

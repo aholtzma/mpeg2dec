@@ -1,6 +1,6 @@
 /*
  * stats.c
- * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
  *
@@ -19,13 +19,33 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <stdlib.h>
+#include "config.h"
+
 #include <stdio.h>
-#include "mpeg2.h"
+#include <stdlib.h>
+#include <inttypes.h>
+
 #include "mpeg2_internal.h"
 
-#include "debug.h"
-#include "stats.h"
+static int debug_level = -1;
+
+/* Determine is debug output is required. */
+/* We could potentially have multiple levels of debug info */
+static int debug_is_on (void)
+{
+    char * env_var;
+	
+    if (debug_level < 0) {
+	env_var = getenv ("MPEG2_DEBUG");
+
+	if (env_var)
+	    debug_level = 1;
+	else
+	    debug_level = 0;
+    }
+	
+    return debug_level;
+}
 
 static void stats_picture (uint8_t * buffer)
 {
@@ -47,14 +67,14 @@ static void stats_picture (uint8_t * buffer)
     vbv_delay = ((buffer[1] << 13) | (buffer[2] << 5) |
 		 (buffer[3] >> 3)) & 0xffff;
 
-    dprintf (" (picture) %s temporal_reference %d, vbv_delay %d\n",
+    fprintf (stderr, " (picture) %s temporal_reference %d, vbv_delay %d\n",
 	     picture_coding_type_str [picture_coding_type],
 	     temporal_reference, vbv_delay);
 }
 
 static void stats_user_data (uint8_t * buffer)
 {
-    dprintf (" (user_data)\n");
+    fprintf (stderr, " (user_data)\n");
 }
 
 static void stats_sequence (uint8_t * buffer)
@@ -102,7 +122,7 @@ static void stats_sequence (uint8_t * buffer)
 	buffer += 64;
     load_non_intra_quantizer_matrix = buffer[7] & 1;
 
-    dprintf (" (seq) %dx%d %s, %s fps, %5.0f kbps, VBV %d kB%s%s%s\n",
+    fprintf (stderr, " (seq) %dx%d %s, %s fps, %5.0f kbps, VBV %d kB%s%s%s\n",
 	     horizontal_size, vertical_size,
 	     aspect_ratio_information_str [aspect_ratio_information],
 	     frame_rate_str [frame_rate_code],
@@ -115,24 +135,24 @@ static void stats_sequence (uint8_t * buffer)
 
 static void stats_sequence_error (uint8_t * buffer)
 {
-    dprintf (" (sequence_error)\n");
+    fprintf (stderr, " (sequence_error)\n");
 }
 
 static void stats_sequence_end (uint8_t * buffer)
 {
-    dprintf (" (sequence_end)\n");
+    fprintf (stderr, " (sequence_end)\n");
 }
 
 static void stats_group (uint8_t * buffer)
 {
-    dprintf (" (group)%s%s\n",
+    fprintf (stderr, " (group)%s%s\n",
 	     (buffer[4] & 0x40) ? " closed_gop" : "",
 	     (buffer[4] & 0x20) ? " broken_link" : "");
 }
 
 static void stats_slice (uint8_t code, uint8_t * buffer)
 {
-    //dprintf (" (slice %d)\n", code);
+    /* fprintf (stderr, " (slice %d)\n", code); */
 }
 
 static void stats_sequence_extension (uint8_t * buffer)
@@ -150,34 +170,34 @@ static void stats_sequence_extension (uint8_t * buffer)
     progressive_sequence = (buffer[1] >> 3) & 1;
     chroma_format = (buffer[1] >> 1) & 3;
 
-    dprintf (" (seq_ext) progressive_sequence %d, %s\n",
+    fprintf (stderr, " (seq_ext) progressive_sequence %d, %s\n",
 	     progressive_sequence, chroma_format_str [chroma_format]);
 }
 
 static void stats_sequence_display_extension (uint8_t * buffer)
 {
-    dprintf (" (sequence_display_extension)\n");
+    fprintf (stderr, " (sequence_display_extension)\n");
 }
 
 static void stats_quant_matrix_extension (uint8_t * buffer)
 {
-    dprintf (" (quant_matrix_extension)\n");
+    fprintf (stderr, " (quant_matrix_extension)\n");
 }
 
 static void stats_copyright_extension (uint8_t * buffer)
 {
-    dprintf (" (copyright_extension)\n");
+    fprintf (stderr, " (copyright_extension)\n");
 }
 
 
 static void stats_sequence_scalable_extension (uint8_t * buffer)
 {
-    dprintf (" (sequence_scalable_extension)\n");
+    fprintf (stderr, " (sequence_scalable_extension)\n");
 }
 
 static void stats_picture_display_extension (uint8_t * buffer)
 {
-    dprintf (" (picture_display_extension)\n");
+    fprintf (stderr, " (picture_display_extension)\n");
 }
 
 static void stats_picture_coding_extension (uint8_t * buffer)
@@ -216,17 +236,22 @@ static void stats_picture_coding_extension (uint8_t * buffer)
     repeat_first_field = (buffer[3] >> 1) & 1;
     progressive_frame = buffer[4] >> 7;
 
-    dprintf (" (pic_ext) %s\n", picture_structure_str [picture_structure]);
-
-    dprintf (" (pic_ext) forward horizontal f_code % d, forward vertical f_code % d\n",
+    fprintf (stderr,
+	     " (pic_ext) %s\n", picture_structure_str [picture_structure]);
+    fprintf (stderr,
+	     " (pic_ext) forward horizontal f_code % d, forward vertical f_code % d\n",
 	     f_code[0][0], f_code[0][1]);
-    dprintf (" (pic_ext) backward horizontal f_code % d, backward vertical f_code % d\n", 
+    fprintf (stderr,
+	     " (pic_ext) backward horizontal f_code % d, backward vertical f_code % d\n", 
 	     f_code[1][0], f_code[1][1]);
-    dprintf (" (pic_ext) intra_dc_precision %d, top_field_first %d, frame_pred_frame_dct %d\n",
+    fprintf (stderr,
+	     " (pic_ext) intra_dc_precision %d, top_field_first %d, frame_pred_frame_dct %d\n",
 	     intra_dc_precision, top_field_first, frame_pred_frame_dct);
-    dprintf (" (pic_ext) concealment_motion_vectors %d, q_scale_type %d, intra_vlc_format %d\n",
+    fprintf (stderr,
+	     " (pic_ext) concealment_motion_vectors %d, q_scale_type %d, intra_vlc_format %d\n",
 	     concealment_motion_vectors, q_scale_type, intra_vlc_format);
-    dprintf (" (pic_ext) alternate_scan %d, repeat_first_field %d, progressive_frame %d\n",
+    fprintf (stderr,
+	     " (pic_ext) alternate_scan %d, repeat_first_field %d, progressive_frame %d\n",
 	     alternate_scan, repeat_first_field, progressive_frame);
 }
 
@@ -249,7 +274,6 @@ void stats_header (uint8_t code, uint8_t * buffer)
 	stats_sequence_error (buffer);
 	break;
     case 0xb5:
-	//stats_extension (buffer);
 	switch (buffer[0] >> 4) {
 	case 1:
 	    stats_sequence_extension (buffer);
@@ -273,7 +297,7 @@ void stats_header (uint8_t code, uint8_t * buffer)
 	    stats_picture_coding_extension (buffer);
 	    break;
 	default:
-	    dprintf (" (unknown extension %#x)\n", buffer[0] >> 4);
+	    fprintf (stderr, " (unknown extension %#x)\n", buffer[0] >> 4);
 	}
 	break;
     case 0xb7:
@@ -286,6 +310,6 @@ void stats_header (uint8_t code, uint8_t * buffer)
 	if (code < 0xb0)
 	    stats_slice (code, buffer);
 	else
-	    dprintf (" (unknown start code %#02x)\n", code);
+	    fprintf (stderr, " (unknown start code %#02x)\n", code);
     }
 }

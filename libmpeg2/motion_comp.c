@@ -1,6 +1,6 @@
 /*
  * motion_comp.c
- * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
  *
@@ -19,15 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include "config.h"
-#include "mpeg2.h"
-#include "mpeg2_internal.h"
-#include "debug.h"
 
-#include "motion_comp.h"
+#include <stdio.h>
+#include <inttypes.h>
+
+#include "mpeg2_internal.h"
+#include "mm_accel.h"
 
 mc_functions_t mc_functions;
 
@@ -35,13 +33,19 @@ void motion_comp_init (void)
 {
 
 #ifdef ARCH_X86
-    if (config.flags & MPEG2_MMX_ENABLE) {
+    if (config.flags & MM_ACCEL_X86_MMXEXT) {
+	fprintf (stderr, "Using MMXEXT for motion compensation\n");
+	mc_functions = mc_functions_mmxext;
+    } else if (config.flags & MM_ACCEL_X86_3DNOW) {
+	fprintf (stderr, "Using 3DNOW for motion compensation\n");
+	mc_functions = mc_functions_3dnow;
+    } else if (config.flags & MM_ACCEL_X86_MMX) {
 	fprintf (stderr, "Using MMX for motion compensation\n");
 	mc_functions = mc_functions_mmx;
     } else
 #endif
 #ifdef LIBMPEG2_MLIB
-    if (config.flags & MPEG2_MLIB_ENABLE) {
+    if (config.flags & MM_ACCEL_MLIB) {
 	fprintf (stderr, "Using mlib for motion compensation\n");
 	mc_functions = mc_functions_mlib;
     } else
@@ -55,7 +59,7 @@ void motion_comp_init (void)
 #define avg2(a,b) ((a+b+1)>>1)
 #define avg4(a,b,c,d) ((a+b+c+d+2)>>2)
 
-#define predict(i) (ref[i])
+#define predict_(i) (ref[i])
 #define predict_x(i) (avg2 (ref[i], ref[i+1]))
 #define predict_y(i) (avg2 (ref[i], (ref+stride)[i]))
 #define predict_xy(i) (avg4 (ref[i], ref[i+1], (ref+stride)[i], (ref+stride)[i+1]))
@@ -63,63 +67,59 @@ void motion_comp_init (void)
 #define put(predictor,i) dest[i] = predictor (i)
 #define avg(predictor,i) dest[i] = avg2 (predictor (i), dest[i])
 
-// mc function template
+/* mc function template */
 
 #define MC_FUNC(op,xy)						\
-static void motion_comp_##op####xy##_16x16_c (uint8_t * dest,	\
-					      uint8_t * ref,	\
-					      int stride,	\
-					      int height)	\
+static void MC_##op##_##xy##16_c (uint8_t * dest, uint8_t * ref,\
+				 int stride, int height)	\
 {								\
     do {							\
-	op (predict##xy, 0);					\
-	op (predict##xy, 1);					\
-	op (predict##xy, 2);					\
-	op (predict##xy, 3);					\
-	op (predict##xy, 4);					\
-	op (predict##xy, 5);					\
-	op (predict##xy, 6);					\
-	op (predict##xy, 7);					\
-	op (predict##xy, 8);					\
-	op (predict##xy, 9);					\
-	op (predict##xy, 10);					\
-	op (predict##xy, 11);					\
-	op (predict##xy, 12);					\
-	op (predict##xy, 13);					\
-	op (predict##xy, 14);					\
-	op (predict##xy, 15);					\
+	op (predict_##xy, 0);					\
+	op (predict_##xy, 1);					\
+	op (predict_##xy, 2);					\
+	op (predict_##xy, 3);					\
+	op (predict_##xy, 4);					\
+	op (predict_##xy, 5);					\
+	op (predict_##xy, 6);					\
+	op (predict_##xy, 7);					\
+	op (predict_##xy, 8);					\
+	op (predict_##xy, 9);					\
+	op (predict_##xy, 10);					\
+	op (predict_##xy, 11);					\
+	op (predict_##xy, 12);					\
+	op (predict_##xy, 13);					\
+	op (predict_##xy, 14);					\
+	op (predict_##xy, 15);					\
 	ref += stride;						\
 	dest += stride;						\
     } while (--height);						\
 }								\
-static void motion_comp_##op####xy##_8x8_c (uint8_t * dest,	\
-					    uint8_t * ref,	\
-					    int stride,		\
-					    int height)		\
+static void MC_##op##_##xy##8_c (uint8_t * dest, uint8_t * ref,	\
+				int stride, int height)		\
 {								\
     do {							\
-	op (predict##xy, 0);					\
-	op (predict##xy, 1);					\
-	op (predict##xy, 2);					\
-	op (predict##xy, 3);					\
-	op (predict##xy, 4);					\
-	op (predict##xy, 5);					\
-	op (predict##xy, 6);					\
-	op (predict##xy, 7);					\
+	op (predict_##xy, 0);					\
+	op (predict_##xy, 1);					\
+	op (predict_##xy, 2);					\
+	op (predict_##xy, 3);					\
+	op (predict_##xy, 4);					\
+	op (predict_##xy, 5);					\
+	op (predict_##xy, 6);					\
+	op (predict_##xy, 7);					\
 	ref += stride;						\
 	dest += stride;						\
     } while (--height);						\
 }
 
-// definitions of the actual mc functions
+/* definitions of the actual mc functions */
 
 MC_FUNC (put,)
 MC_FUNC (avg,)
-MC_FUNC (put,_x)
-MC_FUNC (avg,_x)
-MC_FUNC (put,_y)
-MC_FUNC (avg,_y)
-MC_FUNC (put,_xy)
-MC_FUNC (avg,_xy)
+MC_FUNC (put,x)
+MC_FUNC (avg,x)
+MC_FUNC (put,y)
+MC_FUNC (avg,y)
+MC_FUNC (put,xy)
+MC_FUNC (avg,xy)
 
 MOTION_COMP_EXTERN (c)

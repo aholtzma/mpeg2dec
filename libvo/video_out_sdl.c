@@ -1,6 +1,10 @@
 /*
  * video_out_sdl.c
- * Copyright (C) 2000 Ryan C. Gordon <icculus@lokigames.com>
+ *
+ * Copyright (C) 2000-2001 Ryan C. Gordon <icculus@lokigames.com> and
+ *                         Dominik Schnitzer <aeneas@linuxvideo.org>
+ *
+ * SDL info, source, and binaries can be found at http://www.libsdl.org/
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
  *
@@ -26,276 +30,159 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
+#include <SDL/SDL.h>
+
 #include "video_out.h"
 #include "video_out_internal.h"
 
-LIBVO_EXTERN(sdl)
+typedef struct sdl_frame_s {
+    vo_frame_t vo;
+    SDL_Overlay * overlay;
+} sdl_frame_t;
 
-#include "SDL.h"
+typedef struct sdl_instance_s {
+    vo_instance_t vo;
+    int prediction_index;
+    vo_frame_t * frame_ptr[3];
+    sdl_frame_t frame[3];
 
-static vo_info_t vo_info = 
+    SDL_Surface * surface;
+    Uint32 sdlflags;
+    Uint8 bpp;
+} sdl_instance_t;
+
+static vo_frame_t * sdl_get_frame (vo_instance_t * _instance, int flags)
 {
-	"Simple Direct Media Library (SDL)",
-	"sdl",
-	"Ryan C. Gordon <icculus@lokigames.com>",
-	""
-};
+    sdl_instance_t * instance;
+    sdl_frame_t * frame;
 
-static SDL_Surface *surface = NULL;
-static SDL_Overlay *overlay = NULL;
-static SDL_Rect dispSize;
-static Uint8 *keyState = NULL;
-static int framePlaneY = -1;
-static int framePlaneUV = -1;
-static int slicePlaneY = -1;
-static int slicePlaneUV = -1;
+    instance = (sdl_instance_t *) _instance;
+    frame = (sdl_frame_t *) libvo_common_get_frame ((vo_instance_t *) instance,
+						    flags);
+    SDL_LockYUVOverlay (frame->overlay);
+    return (vo_frame_t *) frame;
+}
 
+static void check_events (sdl_instance_t * instance)
+{
+    SDL_Event event;
 
-static inline int 
-findArrayEnd(SDL_Rect **array)
-/*
- * Take a null-terminated array of pointers, and find the last element.
- *
- *    params : array == array of which we want to find the last element.
- *   returns : index of last NON-NULL element.
- */
+    while (SDL_PollEvent (&event))
+	if (event.type == SDL_VIDEORESIZE)
+	    instance->surface =
+		SDL_SetVideoMode (event.resize.w, event.resize.h,
+				  instance->bpp, instance->sdlflags);
+}
+
+static void sdl_draw_frame (vo_frame_t * _frame)
+{
+    sdl_frame_t * frame;
+    sdl_instance_t * instance;
+
+    frame = (sdl_frame_t *) _frame;
+    instance = (sdl_instance_t *) frame->vo.instance;
+
+    SDL_UnlockYUVOverlay (frame->overlay);
+    SDL_DisplayYUVOverlay (frame->overlay, &(instance->surface->clip_rect));
+    check_events (instance);
+}
+
+static int sdl_alloc_frames (sdl_instance_t * instance, int width, int height)
 {
     int i;
-    for (i = 0; array[i] != NULL; i++);  // keep loopin'...
-    return(i - 1);
-} // findArrayEnd
 
-static uint32_t 
-init(int width, int height, int fullscreen, char *title, uint32_t format)
-/*
- * Initialize an SDL surface and an SDL YUV overlay.
- *
- *    params : width  == width of video we'll be displaying.
- *             height == height of video we'll be displaying.
- *             fullscreen == want to be fullscreen?
- *             title == Title for window titlebar.
- *   returns : non-zero on success, zero on error.
- */
-{
-    int rc = 0;
-    int i = 0;
-    const SDL_VideoInfo *vidInfo = NULL;
-    int desiredWidth = -1;
-    int desiredHeight = -1;
-    SDL_Rect **modes = NULL;
-    Uint32 sdlflags = SDL_HWSURFACE;
-    Uint8 bpp;
+    for (i = 0; i < 3; i++) {
+	instance->frame[i].overlay =
+	    SDL_CreateYUVOverlay (width, height, SDL_YV12_OVERLAY,
+				  instance->surface);
+	if (instance->frame[i].overlay == NULL)
+	    return 1;
+	instance->frame_ptr[i] = (vo_frame_t *) (instance->frame + i);
+	instance->frame[i].vo.base[0] = instance->frame[i].overlay->pixels[0];
+	instance->frame[i].vo.base[1] = instance->frame[i].overlay->pixels[2];
+	instance->frame[i].vo.base[2] = instance->frame[i].overlay->pixels[1];
+	instance->frame[i].vo.copy = NULL;
+	instance->frame[i].vo.field = NULL;
+	instance->frame[i].vo.draw = sdl_draw_frame;
+	instance->frame[i].vo.instance = (vo_instance_t *) instance;
+    }
 
-    if (fullscreen)
-        sdlflags |= SDL_FULLSCREEN;
-
-    rc = SDL_Init(SDL_INIT_VIDEO);
-    if (rc != 0)
-    {
-        printf("SDL: SDL_Init() failed! rc == (%d).\n", rc);
-        return -1;
-    } // if
-
-    atexit(SDL_Quit);
-
-    vidInfo = SDL_GetVideoInfo();
-
-    modes = SDL_ListModes(vidInfo->vfmt, sdlflags);
-    if (modes == NULL)
-    {
-        sdlflags &= ~SDL_FULLSCREEN;
-        modes = SDL_ListModes(vidInfo->vfmt, sdlflags); // try without fullscreen.
-        if (modes == NULL)
-        {
-            sdlflags &= ~SDL_HWSURFACE;
-            modes = SDL_ListModes(vidInfo->vfmt, sdlflags);   // give me ANYTHING.
-            if (modes == NULL)
-            {
-                printf("SDL: SDL_ListModes() failed.\n");
-                return -1;
-            } // if
-        } // if
-    } // if
-
-    if (modes == (SDL_Rect **) -1)   // anything is fine.
-    {
-        desiredWidth = width;
-        desiredHeight = height;
-    } // if
-    else
-    {
-            // we want to get the lowest resolution that'll fit the video.
-            //  ...so start at the far end of the array.
-        for (i = findArrayEnd(modes); ((i >= 0) && (desiredWidth == -1)); i--)
-        {
-            if ((modes[i]->w >= width) && (modes[i]->h >= height))
-            {
-                desiredWidth = modes[i]->w;
-                desiredHeight = modes[i]->h;
-            } // if
-        } // for
-    } // else
-
-    if ((desiredWidth < 0) || (desiredHeight < 0))
-    {
-        printf("SDL: Couldn't produce a mode with at least"
-               " a (%dx%d) resolution!\n", width, height);
-        return -1;
-    } // if
-
-    dispSize.x = (desiredWidth - width) / 2;
-    dispSize.y = (desiredHeight - height) / 2;
-    dispSize.w = width;
-    dispSize.h = height;
-
-        // hide cursor. The cursor is annoying in fullscreen, and when
-        //  using the SDL AAlib target, it tries to draw the cursor,
-        //  which slows us down quite a bit.
-//    if ((sdlflags & SDL_FULLSCREEN) ||
-    SDL_ShowCursor(0);
-
-        // YUV overlays need at least 16-bit color depth, but the
-        //  display might less. The SDL AAlib target says it can only do
-        //  8-bits, for example. So, if the display is less than 16-bits,
-        //  we'll force the BPP to 16, and pray that SDL can emulate for us.
-    bpp = vidInfo->vfmt->BitsPerPixel;
-    if (bpp < 16)
-    {
-        printf("\n\n"
-               "WARNING: Your SDL display target wants to be at a color\n"
-               " depth of (%d), but we need it to be at least 16 bits,\n"
-               " so we need to emulate 16-bit color. This is going to slow\n"
-               " things down; you might want to increase your display's\n"
-               " color depth, if possible.\n\n", bpp);
-        bpp = 16;  // (*shrug*)
-    } // if
-
-    surface = SDL_SetVideoMode(desiredWidth, desiredHeight, bpp, sdlflags);
-    if (surface == NULL)
-    {
-        printf("ERROR: SDL could not set the video mode!\n");
-        return -1;
-    } // if
-
-    if (title == NULL)
-        title = "Help! I'm trapped inside a Palm IIIc!";
-
-    SDL_WM_SetCaption(title, "MPEG2DEC");
-
-    overlay = SDL_CreateYUVOverlay(width, height, SDL_IYUV_OVERLAY, surface);
-    if (overlay == NULL)
-    {
-        printf("ERROR: Couldn't create an SDL-based YUV overlay!\n");
-        return -1;
-    } // if
-
-    keyState = SDL_GetKeyState(NULL);
-
-    framePlaneY = (dispSize.w * dispSize.h);
-    framePlaneUV = ((dispSize.w / 2) * (dispSize.h / 2));
-    slicePlaneY = ((dispSize.w) * 16);
-    slicePlaneUV = ((dispSize.w / 2) * (8));
-
-// temp !!!!
-setbuf(stdout, NULL);
     return 0;
-} // display_init
-
-
-static const vo_info_t*
-get_info(void)
-{
-	return &vo_info;
 }
 
-
-    // !!! do we still need this API function?
-static uint32_t 
-draw_frame(uint8_t *src[])
-/*
- * Draw a frame to the SDL YUV overlay.
- *
- *   params : *src[] == the Y, U, and V planes that make up the frame.
- *  returns : non-zero on success, zero on error.
- */
+static void sdl_close (vo_instance_t * _instance)
 {
-    char *dst;
+    sdl_instance_t * instance;
+    int i;
 
-    if (SDL_LockYUVOverlay(overlay) != 0)
-    {
-        printf("ERROR: Couldn't lock SDL-based YUV overlay!\n");
-        return(0);
-    } // if
-
-    dst = (uint8_t *) *(overlay->pixels);
-    memcpy(dst, src[0], framePlaneY);
-    dst += framePlaneY;
-    memcpy(dst, src[1], framePlaneUV);
-    dst += framePlaneUV;
-    memcpy(dst, src[2], framePlaneUV);
-
-    SDL_UnlockYUVOverlay(overlay);
-    flip_page();
-    return(-1);
-} // display_frame
-
-
-static uint32_t 
-draw_slice(uint8_t *src[], int slice_num)
-/*
- * Draw a slice (16 rows of image) to the SDL YUV overlay.
- *
- *   params : *src[] == the Y, U, and V planes that make up the slice.
- *  returns : non-zero on success, zero on error.
- */
-{
-    char *dst;
-
-    if (SDL_LockYUVOverlay(overlay) != 0)
-    {
-        printf("ERROR: Couldn't lock SDL-based YUV overlay!\n");
-        return(0);
-    } // if
-
-    dst = (uint8_t *) *(overlay->pixels) + (slicePlaneY * slice_num);
-    memcpy(dst, src[0], slicePlaneY);
-    dst = ((uint8_t *) *(overlay->pixels) + framePlaneY) +
-	(slicePlaneUV * slice_num);
-    memcpy(dst, src[1], slicePlaneUV);
-    dst += framePlaneUV;
-    memcpy(dst, src[2], slicePlaneUV);
-
-    SDL_UnlockYUVOverlay(overlay);
-    return(-1);
-} // display_slice
-
-
-static void 
-flip_page(void)
-{
-    SDL_PumpEvents();  // get keyboard and win resize events.
-    if ( (SDL_GetModState() & KMOD_ALT) &&
-         ((keyState[SDLK_KP_ENTER] == SDL_PRESSED) ||
-          (keyState[SDLK_RETURN] == SDL_PRESSED)) )
-    {
-        SDL_WM_ToggleFullScreen(surface);
-    } // if
-
-    SDL_DisplayYUVOverlay(overlay, &dispSize);
-} // display_flip_page
-
-static vo_image_buffer_t* 
-allocate_image_buffer()
-{
-	//use the generic fallback
-	return allocate_image_buffer_common(dispSize.h,dispSize.w,0x32315659);
+    instance = (sdl_instance_t *) _instance;
+    for (i = 0; i < 3; i++)
+	SDL_FreeYUVOverlay (instance->frame[i].overlay);
+    SDL_FreeSurface (instance->surface);
+    SDL_QuitSubSystem (SDL_INIT_VIDEO);
 }
 
-static void	
-free_image_buffer(vo_image_buffer_t* image)
+static int sdl_setup (vo_instance_t * _instance, int width, int height)
 {
-	//use the generic fallback
-	free_image_buffer_common(image);
+    sdl_instance_t * instance;
+
+    instance = (sdl_instance_t *) _instance;
+
+    instance->surface = SDL_SetVideoMode (width, height, instance->bpp,
+					  instance->sdlflags);
+    if (! (instance->surface)) {
+	fprintf (stderr, "sdl could not set the desired video mode\n");
+	return 1;
+    }
+
+    if (sdl_alloc_frames (instance, width, height)) {
+	fprintf (stderr, "sdl could not allocate frame buffers\n");
+	return 1;
+    }
+
+    return 0;
 }
 
+vo_instance_t * vo_sdl_open (void)
+{
+    sdl_instance_t * instance;
+    const SDL_VideoInfo * vidInfo;
+
+    instance = malloc (sizeof (sdl_instance_t));
+    if (instance == NULL)
+	return NULL;
+
+    instance->vo.setup = sdl_setup;
+    instance->vo.close = sdl_close;
+    instance->vo.get_frame = sdl_get_frame;
+
+    instance->surface = NULL;
+    instance->sdlflags = SDL_HWSURFACE | SDL_RESIZABLE;
+
+    setenv("SDL_VIDEO_YUV_HWACCEL", "1", 1);
+    setenv("SDL_VIDEO_X11_NODIRECTCOLOR", "1", 1);
+
+    if (SDL_Init (SDL_INIT_VIDEO)) {
+	fprintf (stderr, "sdl video initialization failed.\n");
+	return NULL;
+    }
+
+    vidInfo = SDL_GetVideoInfo ();
+    if (!SDL_ListModes (vidInfo->vfmt, SDL_HWSURFACE | SDL_RESIZABLE)) {
+	instance->sdlflags = SDL_RESIZABLE;
+	if (!SDL_ListModes (vidInfo->vfmt, SDL_RESIZABLE)) {
+	    fprintf (stderr, "sdl couldn't get any acceptable video mode\n");
+	    return NULL;
+	}
+    }
+    instance->bpp = vidInfo->vfmt->BitsPerPixel;
+    if (instance->bpp < 16) {
+	fprintf(stderr, "sdl has to emulate a 16 bit surfaces, "
+		"that will slow things down.\n");
+	instance->bpp = 16;
+    }
+
+    return (vo_instance_t *) instance;
+}
 #endif

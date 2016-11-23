@@ -1,6 +1,6 @@
 /*
  * video_out.c
- * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
  *
@@ -19,88 +19,129 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "config.h"
+
+#include <stdlib.h>
+#include <inttypes.h>
+
 #include "video_out.h"
+#include "video_out_internal.h"
 
-//
-// Externally visible list of all vo drivers
-//
+#ifdef HAVE_MEMALIGN
+/* some systems have memalign() but no declaration for it */
+void * memalign (size_t align, size_t size);
+#else
+/* assume malloc alignment is sufficient */
+#define memalign(align,size) malloc (size)
+#endif
 
-extern vo_functions_t video_out_x11;
-extern vo_functions_t video_out_sdl;
-extern vo_functions_t video_out_mga;
-extern vo_functions_t video_out_3dfx;
-extern vo_functions_t video_out_syncfb;
-extern vo_functions_t video_out_null;
-extern vo_functions_t video_out_pgm;
-extern vo_functions_t video_out_md5;
+uint32_t vo_mm_accel = 0;
 
-vo_functions_t* video_out_drivers[] = 
+/* Externally visible list of all vo drivers */
+
+extern vo_open_t vo_xv_open;
+extern vo_open_t vo_x11_open;
+extern vo_open_t vo_sdl_open;
+extern vo_open_t vo_mga_open;
+extern vo_open_t vo_null_open;
+extern vo_open_t vo_nullslice_open;
+extern vo_open_t vo_nullrgb16_open;
+extern vo_open_t vo_nullrgb32_open;
+extern vo_open_t vo_pgm_open;
+extern vo_open_t vo_pgmpipe_open;
+extern vo_open_t vo_md5_open;
+
+void vo_accel (uint32_t accel)
 {
-#ifdef LIBVO_X11
-	&video_out_x11,
-#endif
-#ifdef LIBVO_SDL
-	&video_out_sdl,
-#endif
-#ifdef LIBVO_MGA
-	&video_out_mga,
-#endif
-#ifdef LIBVO_3DFX
-	&video_out_3dfx,
-#endif
-#ifdef LIBVO_SYNCFB
-	&video_out_syncfb,
-#endif
-	&video_out_null,
-	&video_out_pgm,
-	&video_out_md5,
-	NULL
-};
-
-
-//
-// Here are the generic fallback routines that could
-// potentially be used by more than one display driver
-//
-
-
-//FIXME this should allocate AGP memory via agpgart and then we
-//can use AGP transfers to the framebuffer
-vo_image_buffer_t* 
-allocate_image_buffer_common (int width, int height, uint32_t format)
-{
-    vo_image_buffer_t *image;
-    uint32_t image_size;
-
-    //we only know how to do YV12 right now
-    if (format != 0x32315659) return NULL;
-	
-    image = malloc(sizeof(vo_image_buffer_t));
-
-    if(!image) return NULL;
-
-    image->height = height;
-    image->width = width;
-    image->format = format;
-	
-    image_size = width * height * 3 / 2;
-    image->base = malloc(image_size);
-
-    if (!image->base) {
-	free (image);
-	return NULL;
-    }
-
-    return image;
+    vo_mm_accel = accel;
 }
 
-void free_image_buffer_common(vo_image_buffer_t* image)
+static vo_driver_t video_out_drivers[] =
 {
-    free (image->base);
-    free (image);
+#ifdef LIBVO_XV
+    {"xv", vo_xv_open},
+#endif
+#ifdef LIBVO_X11
+    {"x11", vo_x11_open},
+#endif
+#ifdef LIBVO_MGA
+    {"mga", vo_mga_open},
+#endif
+#ifdef LIBVO_SDL
+    {"sdl", vo_sdl_open},
+#endif
+    {"null", vo_null_open},
+    {"nullslice", vo_nullslice_open},
+    {"nullrgb16", vo_nullrgb16_open},
+    {"nullrgb32", vo_nullrgb32_open},
+    {"pgm", vo_pgm_open},
+    {"pgmpipe", vo_pgmpipe_open},
+    {"md5", vo_md5_open},
+    {NULL, NULL}
+};
+
+vo_driver_t * vo_drivers (void)
+{
+    return video_out_drivers;
+}
+
+typedef struct common_instance_s {
+    vo_instance_t vo;
+    int prediction_index;
+    vo_frame_t * frame_ptr[3];
+} common_instance_t;
+
+int libvo_common_alloc_frames (vo_instance_t * _instance,
+			       int width, int height, int frame_size,
+			       void (* copy) (vo_frame_t *, uint8_t **),
+			       void (* field) (vo_frame_t *, int),
+			       void (* draw) (vo_frame_t *))
+{
+    common_instance_t * instance;
+    int size;
+    uint8_t * alloc;
+    int i;
+
+    instance = (common_instance_t *) _instance;
+    instance->prediction_index = 1;
+    size = width * height / 4;
+    alloc = memalign (16, 18 * size);
+    if (alloc == NULL)
+	return 1;
+
+    for (i = 0; i < 3; i++) {
+	instance->frame_ptr[i] =
+	    (vo_frame_t *) (((char *) instance) + sizeof (common_instance_t) +
+			    i * frame_size);
+	instance->frame_ptr[i]->base[0] = alloc;
+	instance->frame_ptr[i]->base[1] = alloc + 4 * size;
+	instance->frame_ptr[i]->base[2] = alloc + 5 * size;
+	instance->frame_ptr[i]->copy = copy;
+	instance->frame_ptr[i]->field = field;
+	instance->frame_ptr[i]->draw = draw;
+	instance->frame_ptr[i]->instance = (vo_instance_t *) instance;
+	alloc += 6 * size;
+    }
+
+    return 0;
+}
+
+void libvo_common_free_frames (vo_instance_t * _instance)
+{
+    common_instance_t * instance;
+
+    instance = (common_instance_t *) _instance;
+    free (instance->frame_ptr[0]->base[0]);
+}
+
+vo_frame_t * libvo_common_get_frame (vo_instance_t * _instance, int flags)
+{
+    common_instance_t * instance;
+
+    instance = (common_instance_t *)_instance;
+    if (flags & VO_PREDICTION_FLAG) {
+	instance->prediction_index ^= 1;
+	return instance->frame_ptr[instance->prediction_index];
+    } else
+	return instance->frame_ptr[2];
 }

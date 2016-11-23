@@ -1,6 +1,6 @@
 /*
  * cpu_accel.c
- * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
  *
@@ -22,7 +22,8 @@
 #include "config.h"
 
 #include <inttypes.h>
-#include "oms_accel.h"
+
+#include "mm_accel.h"
 
 #ifdef ARCH_X86
 static uint32_t x86_accel (void)
@@ -53,40 +54,40 @@ static uint32_t x86_accel (void)
 	 :
 	 : "cc");
 
-    if (eax == ebx)		// no cpuid
+    if (eax == ebx)		/* no cpuid */
 	return 0;
 
     cpuid (0x00000000, eax, ebx, ecx, edx);
-    if (!eax)			// vendor string only
+    if (!eax)			/* vendor string only */
 	return 0;
 
     AMD = (ebx == 0x68747541) && (ecx == 0x444d4163) && (edx == 0x69746e65);
 
     cpuid (0x00000001, eax, ebx, ecx, edx);
-    if (! (edx & 0x00800000))	// no MMX
+    if (! (edx & 0x00800000))	/* no MMX */
 	return 0;
 
-    caps = OMS_ACCEL_X86_MMX;
-    if (edx & 0x02000000)	// SSE - identical to AMD MMX extensions
-	caps = OMS_ACCEL_X86_MMX | OMS_ACCEL_X86_MMXEXT;
+    caps = MM_ACCEL_X86_MMX;
+    if (edx & 0x02000000)	/* SSE - identical to AMD MMX extensions */
+	caps = MM_ACCEL_X86_MMX | MM_ACCEL_X86_MMXEXT;
 
     cpuid (0x80000000, eax, ebx, ecx, edx);
-    if (eax < 0x80000001)	// no extended capabilities
+    if (eax < 0x80000001)	/* no extended capabilities */
 	return caps;
 
     cpuid (0x80000001, eax, ebx, ecx, edx);
 
     if (edx & 0x80000000)
-	caps |= OMS_ACCEL_X86_3DNOW;
+	caps |= MM_ACCEL_X86_3DNOW;
 
-    if (AMD && (edx & 0x00400000))	// AMD MMX extensions
-	caps |= OMS_ACCEL_X86_MMXEXT;
+    if (AMD && (edx & 0x00400000))	/* AMD MMX extensions */
+	caps |= MM_ACCEL_X86_MMXEXT;
 
     return caps;
 }
 #endif
 
-uint32_t oms_cpu_accel (void)
+uint32_t mm_accel (void)
 {
 #ifdef ARCH_X86
     static int got_accel = 0;

@@ -1,6 +1,6 @@
 /*
  * yuv2rgb.c
- * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
  *
@@ -19,13 +19,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
-#include "config.h"
-#include "video_out.h"
 #include "yuv2rgb.h"
-#include "oms_accel.h"
+#include "mm_accel.h"
+#include "video_out.h"
+#include "video_out_internal.h"
 
 uint32_t matrix_coefficients = 6;
 
@@ -48,36 +51,40 @@ static void (* yuv2rgb_c_internal) (uint8_t *, uint8_t *,
 				    uint8_t *, uint8_t *,
 				    void *, void *, int);
 
-static void yuv2rgb_c (void * dst, uint8_t * py, 
-		       uint8_t * pu, uint8_t * pv, 
-		       int h_size, int v_size, 
-		       int rgb_stride, int y_stride, int uv_stride) 
+static void yuv2rgb_c (void * dst, uint8_t * py,
+		       uint8_t * pu, uint8_t * pv,
+		       int width, int height,
+		       int rgb_stride, int y_stride, int uv_stride)
 {
-    v_size >>= 1;
-
-    while (v_size--) {
-	yuv2rgb_c_internal (py, py + y_stride, pu, pv, dst, dst + rgb_stride,
-			    h_size);
+    height >>= 1;
+    do {
+	yuv2rgb_c_internal (py, py + y_stride, pu, pv,
+			    dst, ((uint8_t *)dst) + rgb_stride, width);
 
 	py += 2 * y_stride;
 	pu += uv_stride;
 	pv += uv_stride;
-	dst += 2 * rgb_stride;
-    }
+	dst = ((uint8_t *)dst) + 2 * rgb_stride;
+    } while (--height);
 }
 
 void yuv2rgb_init (int bpp, int mode) 
 {
     yuv2rgb = NULL;
 #ifdef ARCH_X86
-    if (yuv2rgb == NULL && (oms_cpu_accel () & OMS_ACCEL_X86_MMX)) {
+    if ((yuv2rgb == NULL) && (vo_mm_accel & MM_ACCEL_X86_MMXEXT)) {
+	yuv2rgb = yuv2rgb_init_mmxext (bpp, mode);
+	if (yuv2rgb != NULL)
+	    fprintf (stderr, "Using MMXEXT for colorspace transform\n");
+    }
+    if ((yuv2rgb == NULL) && (vo_mm_accel & MM_ACCEL_X86_MMX)) {
 	yuv2rgb = yuv2rgb_init_mmx (bpp, mode);
 	if (yuv2rgb != NULL)
 	    fprintf (stderr, "Using MMX for colorspace transform\n");
     }
 #endif
 #ifdef LIBVO_MLIB
-    if (yuv2rgb == NULL /*&& (config.flags & VO_MLIB_ENABLE)*/) {
+    if ((yuv2rgb == NULL) && (vo_mm_accel & MM_ACCEL_MLIB)) {
 	yuv2rgb = yuv2rgb_init_mlib (bpp, mode);
 	if (yuv2rgb != NULL)
 	    fprintf (stderr, "Using mlib for colorspace transform\n");
@@ -86,7 +93,7 @@ void yuv2rgb_init (int bpp, int mode)
     if (yuv2rgb == NULL) {
 	fprintf (stderr, "No accelerated colorspace conversion found\n");
 	yuv2rgb_c_init (bpp, mode);
-	yuv2rgb = (yuv2rgb_fun)yuv2rgb_c;
+	yuv2rgb = (yuv2rgb_fun) yuv2rgb_c;
     }
 }
 
@@ -95,11 +102,11 @@ void * table_gU[256];
 int table_gV[256];
 void * table_bU[256];
 
-#define RGB(i)					\
-	U = pu[i];				\
-	V = pv[i];				\
-	r = table_rV[V];			\
-	g = table_gU[U] + table_gV[V];		\
+#define RGB(i)							\
+	U = pu[i];						\
+	V = pv[i];						\
+	r = table_rV[V];					\
+	g = (void *) (((uint8_t *)table_gU[U]) + table_gV[V]);	\
 	b = table_bU[U];
 
 #define DST1(i)					\
@@ -140,17 +147,17 @@ void * table_bU[256];
 
 static void yuv2rgb_c_32 (uint8_t * py_1, uint8_t * py_2,
 			  uint8_t * pu, uint8_t * pv,
-			  void * _dst_1, void * _dst_2, int h_size)
+			  void * _dst_1, void * _dst_2, int width)
 {
     int U, V, Y;
     uint32_t * r, * g, * b;
     uint32_t * dst_1, * dst_2;
 
-    h_size >>= 3;
+    width >>= 3;
     dst_1 = _dst_1;
     dst_2 = _dst_2;
 
-    while (h_size--) {
+    do {
 	RGB(0);
 	DST1(0);
 	DST2(0);
@@ -173,23 +180,23 @@ static void yuv2rgb_c_32 (uint8_t * py_1, uint8_t * py_2,
 	py_2 += 8;
 	dst_1 += 8;
 	dst_2 += 8;
-    }
+    } while (--width);
 }
 
-// This is very near from the yuv2rgb_c_32 code
+/* This is very near from the yuv2rgb_c_32 code */
 static void yuv2rgb_c_24_rgb (uint8_t * py_1, uint8_t * py_2,
 			      uint8_t * pu, uint8_t * pv,
-			      void * _dst_1, void * _dst_2, int h_size)
+			      void * _dst_1, void * _dst_2, int width)
 {
     int U, V, Y;
     uint8_t * r, * g, * b;
     uint8_t * dst_1, * dst_2;
 
-    h_size >>= 3;
+    width >>= 3;
     dst_1 = _dst_1;
     dst_2 = _dst_2;
 
-    while (h_size--) {
+    do {
 	RGB(0);
 	DST1RGB(0);
 	DST2RGB(0);
@@ -212,23 +219,23 @@ static void yuv2rgb_c_24_rgb (uint8_t * py_1, uint8_t * py_2,
 	py_2 += 8;
 	dst_1 += 24;
 	dst_2 += 24;
-    }
+    } while (--width);
 }
 
-// only trivial mods from yuv2rgb_c_24_rgb
+/* only trivial mods from yuv2rgb_c_24_rgb */
 static void yuv2rgb_c_24_bgr (uint8_t * py_1, uint8_t * py_2,
 			      uint8_t * pu, uint8_t * pv,
-			      void * _dst_1, void * _dst_2, int h_size)
+			      void * _dst_1, void * _dst_2, int width)
 {
     int U, V, Y;
     uint8_t * r, * g, * b;
     uint8_t * dst_1, * dst_2;
 
-    h_size >>= 3;
+    width >>= 3;
     dst_1 = _dst_1;
     dst_2 = _dst_2;
 
-    while (h_size--) {
+    do {
 	RGB(0);
 	DST1BGR(0);
 	DST2BGR(0);
@@ -251,24 +258,24 @@ static void yuv2rgb_c_24_bgr (uint8_t * py_1, uint8_t * py_2,
 	py_2 += 8;
 	dst_1 += 24;
 	dst_2 += 24;
-    }
+    } while (--width);
 }
 
-// This is exactly the same code as yuv2rgb_c_32 except for the types of
-// r, g, b, dst_1, dst_2
+/* This is exactly the same code as yuv2rgb_c_32 except for the types of */
+/* r, g, b, dst_1, dst_2 */
 static void yuv2rgb_c_16 (uint8_t * py_1, uint8_t * py_2,
 			  uint8_t * pu, uint8_t * pv,
-			  void * _dst_1, void * _dst_2, int h_size)
+			  void * _dst_1, void * _dst_2, int width)
 {
     int U, V, Y;
     uint16_t * r, * g, * b;
     uint16_t * dst_1, * dst_2;
 
-    h_size >>= 3;
+    width >>= 3;
     dst_1 = _dst_1;
     dst_2 = _dst_2;
 
-    while (h_size--) {
+    do {
 	RGB(0);
 	DST1(0);
 	DST2(0);
@@ -291,7 +298,7 @@ static void yuv2rgb_c_16 (uint8_t * py_1, uint8_t * py_2,
 	py_2 += 8;
 	dst_1 += 8;
 	dst_2 += 8;
-    }
+    } while (--width);
 }
 
 static int div_round (int dividend, int divisor)
@@ -306,10 +313,10 @@ static void yuv2rgb_c_init (int bpp, int mode)
 {  
     int i;
     uint8_t table_Y[1024];
-    uint32_t *table_32 = 0;
-    uint16_t *table_16 = 0;
-    uint8_t *table_8 = 0;
-    uint32_t entry_size = 0;
+    uint32_t * table_32 = 0;
+    uint16_t * table_16 = 0;
+    uint8_t * table_8 = 0;
+    int entry_size = 0;
     void *table_r = 0, *table_g = 0, *table_b = 0;
 
     int crv = Inverse_Table_6_9[matrix_coefficients][0];
@@ -337,11 +344,13 @@ static void yuv2rgb_c_init (int bpp, int mode)
 	table_g = table_32 + 197 + 2*682;
 
 	for (i = -197; i < 256+197; i++)
-	    ((uint32_t *)table_r)[i] = table_Y[i+384] << ((mode==MODE_RGB) ? 16 : 0);
+	    ((uint32_t *) table_r)[i] =
+		table_Y[i+384] << ((mode==MODE_RGB) ? 16 : 0);
 	for (i = -132; i < 256+132; i++)
-	    ((uint32_t *)table_g)[i] = table_Y[i+384] << 8;
+	    ((uint32_t *) table_g)[i] = table_Y[i+384] << 8;
 	for (i = -232; i < 256+232; i++)
-	    ((uint32_t *)table_b)[i] = table_Y[i+384] << ((mode==MODE_RGB) ? 0 : 16);
+	    ((uint32_t *) table_b)[i] =
+		table_Y[i+384] << ((mode==MODE_RGB) ? 0 : 16);
 	break;
 
     case 24:
@@ -396,9 +405,12 @@ static void yuv2rgb_c_init (int bpp, int mode)
     }
 
     for (i = 0; i < 256; i++) {
-	table_rV[i] = table_r + entry_size * div_round (crv * (i-128), 76309);
-	table_gU[i] = table_g + entry_size * div_round (cgu * (i-128), 76309);
+	table_rV[i] = (((uint8_t *)table_r) +
+		       entry_size * div_round (crv * (i-128), 76309));
+	table_gU[i] = (((uint8_t *)table_g) +
+		       entry_size * div_round (cgu * (i-128), 76309));
 	table_gV[i] = entry_size * div_round (cgv * (i-128), 76309);
-	table_bU[i] = table_b + entry_size * div_round (cbu * (i-128), 76309);
+	table_bU[i] = (((uint8_t *)table_b) +
+		       entry_size * div_round (cbu * (i-128), 76309));
     }
 }

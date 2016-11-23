@@ -1,6 +1,6 @@
 /*
  * idct_mmx.c
- * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
  *
@@ -23,13 +23,11 @@
 
 #ifdef ARCH_X86
 
-#include <stdio.h>
-#include <mmx.h>
-#include <sse.h>
-#include "mpeg2.h"
-#include "mpeg2_internal.h"
+#include <inttypes.h>
 
-#include "idct.h"
+#include "mpeg2_internal.h"
+#include "attributes.h"
+#include "mmx.h"
 
 #define ROW_SHIFT 11
 #define COL_SHIFT 6
@@ -39,7 +37,7 @@
 
 
 #if 0
-// C row IDCT - its just here to document the SSE and MMX versions
+/* C row IDCT - its just here to document the MMXEXT and MMX versions */
 static inline void idct_row (int16_t * row, int offset,
 			     int16_t * table, int32_t * rounder)
 {
@@ -78,18 +76,18 @@ static inline void idct_row (int16_t * row, int offset,
 #endif
 
 
-// SSE row IDCT
+/* MMXEXT row IDCT */
 
-#define sse_table(c1,c2,c3,c4,c5,c6,c7)	{  c4,  c2, -c4, -c2,	\
-					   c4,  c6,  c4,  c6,	\
-					   c1,  c3, -c1, -c5,	\
-					   c5,  c7,  c3, -c7,	\
-					   c4, -c6,  c4, -c6,	\
-					  -c4,  c2,  c4, -c2,	\
-					   c5, -c1,  c3, -c1,	\
-					   c7,  c3,  c7, -c5 }
+#define mmxext_table(c1,c2,c3,c4,c5,c6,c7)	{  c4,  c2, -c4, -c2,	\
+						   c4,  c6,  c4,  c6,	\
+						   c1,  c3, -c1, -c5,	\
+						   c5,  c7,  c3, -c7,	\
+						   c4, -c6,  c4, -c6,	\
+						  -c4,  c2,  c4, -c2,	\
+						   c5, -c1,  c3, -c1,	\
+						   c7,  c3,  c7, -c5 }
 
-static inline void sse_row_head (int16_t * row, int offset, int16_t * table)
+static inline void mmxext_row_head (int16_t * row, int offset, int16_t * table)
 {
     movq_m2r (*(row+offset), mm2);	// mm2 = x6 x4 x2 x0
 
@@ -105,7 +103,7 @@ static inline void sse_row_head (int16_t * row, int offset, int16_t * table)
     pshufw_r2r (mm2, mm2, 0x4e);	// mm2 = x2 x0 x6 x4
 }
 
-static inline void sse_row (int16_t * table, int32_t * rounder)
+static inline void mmxext_row (int16_t * table, int32_t * rounder)
 {
     movq_m2r (*(table+8), mm1);		// mm1 = -C5 -C1 C3 C1
     pmaddwd_r2r (mm2, mm4);		// mm4 = C4*x0+C6*x2 C4*x4+C6*x6
@@ -144,7 +142,7 @@ static inline void sse_row (int16_t * table, int32_t * rounder)
     psubd_r2r (mm5, mm4);		// mm4 = a3-b3 a2-b2 + rounder
 }
 
-static inline void sse_row_tail (int16_t * row, int store)
+static inline void mmxext_row_tail (int16_t * row, int store)
 {
     psrad_i2r (ROW_SHIFT, mm0);		// mm0 = y3 y2
 
@@ -157,13 +155,13 @@ static inline void sse_row_tail (int16_t * row, int store)
     movq_r2m (mm1, *(row+store));	// save y3 y2 y1 y0
     pshufw_r2r (mm4, mm4, 0xb1);	// mm4 = y7 y6 y5 y4
 
-    // slot
+    /* slot */
 
     movq_r2m (mm4, *(row+store+4));	// save y7 y6 y5 y4
 }
 
-static inline void sse_row_mid (int16_t * row, int store,
-				int offset, int16_t * table)
+static inline void mmxext_row_mid (int16_t * row, int store,
+				   int offset, int16_t * table)
 {
     movq_m2r (*(row+offset), mm2);	// mm2 = x6 x4 x2 x0
     psrad_i2r (ROW_SHIFT, mm0);		// mm0 = y3 y2
@@ -190,7 +188,7 @@ static inline void sse_row_mid (int16_t * row, int store,
 }
 
 
-// MMX row IDCT
+/* MMX row IDCT */
 
 #define mmx_table(c1,c2,c3,c4,c5,c6,c7)	{  c4,  c2,  c4,  c6,	\
 					   c4,  c6, -c4, -c2,	\
@@ -278,7 +276,7 @@ static inline void mmx_row_tail (int16_t * row, int store)
 
     por_r2r (mm4, mm7);			// mm7 = y7 y6 y5 y4
 
-    // slot
+    /* slot */
 
     movq_r2m (mm7, *(row+store+4));	// save y7 y6 y5 y4
 }
@@ -319,13 +317,13 @@ static inline void mmx_row_mid (int16_t * row, int store,
 
 
 #if 0
-// C column IDCT - its just here to document the SSE and MMX versions
+// C column IDCT - its just here to document the MMXEXT and MMX versions
 static inline void idct_col (int16_t * col, int offset)
 {
-// multiplication - as implemented on mmx
+/* multiplication - as implemented on mmx */
 #define F(c,x) (((c) * (x)) >> 16)
 
-// saturation - it helps us handle torture test cases
+/* saturation - it helps us handle torture test cases */
 #define S(x) (((x)>32767) ? 32767 : ((x)<-32768) ? -32768 : (x))
 
     int16_t x0, x1, x2, x3, x4, x5, x6, x7;
@@ -346,25 +344,25 @@ static inline void idct_col (int16_t * col, int offset)
 
     u04 = S (x0 + x4);
     v04 = S (x0 - x4);
-    u26 = S (F (T2, x6) + x2);	// -0.5
-    v26 = S (F (T2, x2) - x6);	// -0.5
+    u26 = S (F (T2, x6) + x2);
+    v26 = S (F (T2, x2) - x6);
 
     a0 = S (u04 + u26);
     a1 = S (v04 + v26);
     a2 = S (v04 - v26);
     a3 = S (u04 - u26);
 
-    u17 = S (F (T1, x7) + x1);	// -0.5
-    v17 = S (F (T1, x1) - x7);	// -0.5
-    u35 = S (F (T3, x5) + x3);	// -0.5
-    v35 = S (F (T3, x3) - x5);	// -0.5
+    u17 = S (F (T1, x7) + x1);
+    v17 = S (F (T1, x1) - x7);
+    u35 = S (F (T3, x5) + x3);
+    v35 = S (F (T3, x3) - x5);
 
     b0 = S (u17 + u35);
     b3 = S (v17 - v35);
     u12 = S (u17 - u35);
     v12 = S (v17 + v35);
-    u12 = S (2 * F (C4, u12));	// -0.5
-    v12 = S (2 * F (C4, v12));	// -0.5
+    u12 = S (2 * F (C4, u12));
+    v12 = S (2 * F (C4, v12));
     b1 = S (u12 + v12);
     b2 = S (u12 - v12);
 
@@ -398,11 +396,10 @@ static inline void idct_col (int16_t * col, int offset)
 #define T3 43790
 #define C4 23170
 
-    static short _T1[] ALIGN_8_BYTE = {T1,T1,T1,T1};
-    static short _T2[] ALIGN_8_BYTE = {T2,T2,T2,T2};
-    static short _T3[] ALIGN_8_BYTE = {T3,T3,T3,T3};
-    static short _C4[] ALIGN_8_BYTE = {C4,C4,C4,C4};
-    static mmx_t scratch0, scratch1;
+    static short _T1[] ATTR_ALIGN(8) = {T1,T1,T1,T1};
+    static short _T2[] ATTR_ALIGN(8) = {T2,T2,T2,T2};
+    static short _T3[] ATTR_ALIGN(8) = {T3,T3,T3,T3};
+    static short _C4[] ATTR_ALIGN(8) = {C4,C4,C4,C4};
 
     /* column code adapted from peter gubanov */
     /* http://www.elecard.com/peter/idct.shtml */
@@ -430,7 +427,7 @@ static inline void idct_col (int16_t * col, int offset)
     paddsw_r2r (mm2, mm1);		// mm1 = u17
     pmulhw_r2r (mm6, mm7);		// mm7 = (T3-1)*x5
 
-    // slot
+    /* slot */
 
     movq_r2r (mm4, mm2);		// mm2 = T2
     paddsw_r2r (mm3, mm5);		// mm5 = T3*x3
@@ -450,7 +447,7 @@ static inline void idct_col (int16_t * col, int offset)
     psubsw_r2r (mm3, mm4);		// mm4 = v26
     paddsw_r2r (mm6, mm5);		// mm5 = v12
 
-    movq_r2m (mm0, *&scratch0);		// save b3
+    movq_r2m (mm0, *(col+offset+3*8));	// save b3 in scratch0
     movq_r2r (mm1, mm6);		// mm6 = u17
 
     paddsw_m2r (*(col+offset+2*8), mm2);// mm2 = u26
@@ -465,7 +462,7 @@ static inline void idct_col (int16_t * col, int offset)
     movq_m2r (*_C4, mm0);		// mm0 = C4/2
     psubsw_r2r (mm5, mm7);		// mm7 = u12-v12
 
-    movq_r2m (mm6, *&scratch1);		// save b0
+    movq_r2m (mm6, *(col+offset+5*8));	// save b0 in scratch1
     pmulhw_r2r (mm0, mm1);		// mm1 = b1/2
 
     movq_r2r (mm4, mm6);		// mm6 = v26
@@ -498,7 +495,7 @@ static inline void idct_col (int16_t * col, int offset)
     psraw_i2r (COL_SHIFT, mm4);		// mm4 = y1
     psubsw_r2r (mm1, mm6);		// mm6 = a1-b1
 
-    movq_m2r (*&scratch1, mm1);		// mm1 = b0
+    movq_m2r (*(col+offset+5*8), mm1);	// mm1 = b0
     psubsw_r2r (mm7, mm2);		// mm2 = a2-b2
 
     psraw_i2r (COL_SHIFT, mm6);		// mm6 = y6
@@ -510,7 +507,7 @@ static inline void idct_col (int16_t * col, int offset)
     movq_r2m (mm3, *(col+offset+2*8));	// save y2
     paddsw_r2r (mm1, mm5);		// mm5 = a0+b0
 
-    movq_m2r (*&scratch0, mm4);		// mm4 = b3
+    movq_m2r (*(col+offset+3*8), mm4);	// mm4 = b3
     psubsw_r2r (mm1, mm7);		// mm7 = a0-b0
 
     psraw_i2r (COL_SHIFT, mm5);		// mm5 = y0
@@ -536,33 +533,33 @@ static inline void idct_col (int16_t * col, int offset)
 }
 
 
-static int32_t rounder0[] ALIGN_8_BYTE =
+static int32_t rounder0[] ATTR_ALIGN(8) =
     rounder ((1 << (COL_SHIFT - 1)) - 0.5);
-static int32_t rounder4[] ALIGN_8_BYTE = rounder (0);
-static int32_t rounder1[] ALIGN_8_BYTE =
-    rounder (1.25683487303);	// C1*(C1/C4+C1+C7)/2
-static int32_t rounder7[] ALIGN_8_BYTE =
-    rounder (-0.25);		// C1*(C7/C4+C7-C1)/2
-static int32_t rounder2[] ALIGN_8_BYTE =
-    rounder (0.60355339059);	// C2 * (C6+C2)/2
-static int32_t rounder6[] ALIGN_8_BYTE =
-    rounder (-0.25);		// C2 * (C6-C2)/2
-static int32_t rounder3[] ALIGN_8_BYTE =
-    rounder (0.087788325588);	// C3*(-C3/C4+C3+C5)/2
-static int32_t rounder5[] ALIGN_8_BYTE =
-    rounder (-0.441341716183);	// C3*(-C5/C4+C5-C3)/2
+static int32_t rounder4[] ATTR_ALIGN(8) = rounder (0);
+static int32_t rounder1[] ATTR_ALIGN(8) =
+    rounder (1.25683487303);	/* C1*(C1/C4+C1+C7)/2 */
+static int32_t rounder7[] ATTR_ALIGN(8) =
+    rounder (-0.25);		/* C1*(C7/C4+C7-C1)/2 */
+static int32_t rounder2[] ATTR_ALIGN(8) =
+    rounder (0.60355339059);	/* C2 * (C6+C2)/2 */
+static int32_t rounder6[] ATTR_ALIGN(8) =
+    rounder (-0.25);		/* C2 * (C6-C2)/2 */
+static int32_t rounder3[] ATTR_ALIGN(8) =
+    rounder (0.087788325588);	/* C3*(-C3/C4+C3+C5)/2 */
+static int32_t rounder5[] ATTR_ALIGN(8) =
+    rounder (-0.441341716183);	/* C3*(-C5/C4+C5-C3)/2 */
 
 
 #define declare_idct(idct,table,idct_row_head,idct_row,idct_row_tail,idct_row_mid)	\
 static inline void idct (int16_t * block)				\
 {									\
-    static int16_t table04[] ALIGN_16_BYTE =				\
+    static int16_t table04[] ATTR_ALIGN(16) =				\
 	table (22725, 21407, 19266, 16384, 12873,  8867, 4520);		\
-    static int16_t table17[] ALIGN_16_BYTE =				\
+    static int16_t table17[] ATTR_ALIGN(16) =				\
 	table (31521, 29692, 26722, 22725, 17855, 12299, 6270);		\
-    static int16_t table26[] ALIGN_16_BYTE =				\
+    static int16_t table26[] ATTR_ALIGN(16) =				\
 	table (29692, 27969, 25172, 21407, 16819, 11585, 5906);		\
-    static int16_t table35[] ALIGN_16_BYTE =				\
+    static int16_t table35[] ATTR_ALIGN(16) =				\
 	table (26722, 25172, 22654, 19266, 15137, 10426, 5315);		\
 									\
     idct_row_head (block, 0*8, table04);				\
@@ -657,18 +654,18 @@ static void block_add (int16_t * block, uint8_t * dest, int stride)
 }
 
 
-declare_idct (sse_idct, sse_table,
-	      sse_row_head, sse_row, sse_row_tail, sse_row_mid)
+declare_idct (mmxext_idct, mmxext_table,
+	      mmxext_row_head, mmxext_row, mmxext_row_tail, mmxext_row_mid)
 
-void idct_block_copy_sse (int16_t * block, uint8_t * dest, int stride)
+void idct_block_copy_mmxext (int16_t * block, uint8_t * dest, int stride)
 {
-    sse_idct (block);
+    mmxext_idct (block);
     block_copy (block, dest, stride);
 }
 
-void idct_block_add_sse (int16_t * block, uint8_t * dest, int stride)
+void idct_block_add_mmxext (int16_t * block, uint8_t * dest, int stride)
 {
-    sse_idct (block);
+    mmxext_idct (block);
     block_add (block, dest, stride);
 }
 
@@ -695,7 +692,7 @@ void idct_mmx_init (void)
     extern uint8_t scan_alt[64];
     int i, j;
 
-    // the mmx/sse idct uses a reordered input, so we patch scan tables
+    /* the mmx/mmxext idct uses a reordered input, so we patch scan tables */
 
     for (i = 0; i < 64; i++) {
 	j = scan_norm[i];

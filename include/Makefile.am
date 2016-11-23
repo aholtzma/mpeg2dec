@@ -1,1 +1,1 @@
-EXTRA_DIST = oms_accel.h mmx.h sse.h
+pkginclude_HEADERS = mpeg2.h video_out.h mm_accel.h mmx.h attributes.h

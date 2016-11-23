@@ -4,11 +4,14 @@ ABOUT MPEG2DEC
 
 mpeg2dec is an mpeg-1 and mpeg-2 video decoder. It is purposely kept
 simple : it does not include features like reading files from a DVD,
-output picture scaling, audio decoding, synchronisation, etc... The
-main purpose of mpeg2dec is to have a simple test bed for
-libmpeg2. mpeg2dec also includes a demultiplexer for mpeg-1 and mpeg-2
-program streams, and output routines for a variety of different
-interfaces.
+CSS, fullscreen output, navigation, etc... The main purpose of
+mpeg2dec is to have a simple test bed for libmpeg2. mpeg2dec also
+includes a demultiplexer for mpeg-1 and mpeg-2 program streams, and
+output routines for a variety of different interfaces.
+
+In the future mpeg2dec is expected to include support for
+synchronization too (playing streams at the right speed would be a
+good start)
 
 mpeg2dec and libmpeg2 are released under the GPL license.
 
@@ -21,23 +24,22 @@ libmpeg2 is the heart of the mpeg decoder. It should be able to decode
 all mpeg streams that conform to certain restrictions : "constrained
 parameters" for mpeg-1, and "main profile" for mpeg-2. In practice,
 this is sufficient for most applications - I have not heard of any
-commercial application actually using the higher mpeg profiles.
+commercial application actually using the higher mpeg profiles. For
+streams that follow these restrictions, we are 100% conformant to the
+mpeg standard.
 
-Right now we support nearly all of these features : the main ommission
-is mpeg-2 field pictures, which we should fix before the 0.2.0
-release. For streams that do not use unsupported mpeg features, we are
-100% conformant to the mpeg standard. The speed is good too - for most
-current systems, the display will actually take more time than the
-mpeg-2 decoding. For systems that have hardware color conversion and
-scaling (as we can use with the xv extension in Xfree 4), you should
-be able to watch DVD streams on a Celeron 400. On a PIII/666 with null
-display you should get about 100 frames per second.
+The speed is good too - for most current systems, the display will
+actually take more time than the mpeg-2 decoding. For systems that
+have hardware color conversion and scaling (as we can use with the xv
+extension in Xfree 4), you should be able to watch DVD streams on a
+Celeron 400. On a PIII/666 with null display you should get about 110
+frames per second.
 
 The code is mostly written in C, with some time-critical routines
 having optimized implementations using assembly language or mlib
 calls. It should be portable on all architectures - it has been tested
-at least on x86, ppc and sparc. Optimized implementations are only
-available for x86 yet, but we'd like to get them for other
+at least on x86, ppc, sparc, arm and sh4. Optimized implementations
+are only available for x86 yet, but we'd like to get them for other
 architectures soon.
 
 
@@ -79,27 +81,33 @@ http://www.linuxvideo.org/developer/data/mpeg2dec.tar.gz
 
 OTHER PROJECTS USING LIBMPEG2
 
-OMS (http://www.linuxvideo.org/oms/) is a full-featured DVD player project.
+OMS (http://www.linuxvideo.org/oms/) is a full-featured DVD player
+project.
 
 xine (http://xine.sourceforge.net/) is a simple mpeg-2 audio and video
 decoder. It has less features than OMS but it is easier to work
 with. It is a great test bed for audio/video synchronisation issues
 too.
 
+gsstreamer (http://www.gstreamer.net/) is a streaming media framework;
+it has an mpeg2 decoding plugin based on libmpeg2.
+
+MPlayer (http://banki1.banki.hu/~arpi/MPlayer.html) has no fancy GUI
+but it is particularly good at playing damaged streams.
+
 
 CONTRIBUTORS
 
 Aaron Holtzman <aholtzma@ess.engr.uvic.ca> started the project and
-	made the initial working implementation.
+made the initial working implementation.
 
 Michel Lespinasse <walken@zoy.org> did large changes for speed and
-	mpeg conformance and is the current maintainer.
+mpeg conformance and is the current maintainer.
 
 Other contributors include :
 
 	Bruno Barreyra <barreyra@ufl.edu> - build fixes
 	Stephen Crowley <stephenc@dns2.digitalpassage.com> - build fixes
-	Colin Cross <colin@mit.edu> - 3dfx output code
 	Didier Gautheron <dgautheron@magic.fr> - bug fixes
 	Ryan C. Gordon <icculus@lokigames.com> - SDL support
 	Peter Gubanov <peter@elecard.net.ru> - MMX IDCT scheduling
@@ -112,12 +120,18 @@ Other contributors include :
 	Bajusz Peter <hyp-x@inf.bme.hu> - motion comp fixes
 	Franck Sicard <Franck.Sicard@miniruth.solsoft.fr> - x11 fixes
 	Brion Vibber <brion@gizmo.usc.edu> - x11 fixes
+	Martin Vogt <mvogt@rhrk.uni-kl.de> - reentrancy fixes
 	Fredrik Vraalsen <vraalsen@cs.uiuc.edu> - general hackage and stuff
 
 (let me know if I forgot anyone)
 
 
 HOW TO HELP
+
+If you want to port mpeg2dec to a new architecture, or add any new
+feature in it, please contact us - see the next section :)
+
+I'm not entirely satisfied by our current mmx yuv2rgb routine either.
 
 We'd like to have optimized routines for more different architectures :
 PPC, alpha, sparc... If you can do ASM using the multimedia extensions
@@ -127,19 +141,19 @@ we're interested too. There are probably still other ways to improve
 the decoder performance too - if you're good at that, just have a look
 and tell us what you find.
 
-We also need some people to work on the video output layers.
-
-If you need the mpeg-2 video spec, you can get it on www.wotsit.org.
-(search for mpeg2-2.doc)
-
 
 CONTACTS
 
-If you want to work on mpeg2dec, you should write to walken and aaron
-and subscribe to the livid-dev mailing list.
+For technical discussion about libmpeg2 and updates about its
+development you should subscribe to livid-mpeg2dec mailing list.
+
+CVS checkins are announced on livid-mpeg2dec-cvs mailing list.
+
+If you want to work on mpeg2dec, you should write to walken and
+subscribe to the livid-mpeg2dec mailing list.
 
 If you just want help about mpeg2dec, please post to the livid-user
 mailing list.
 
 Information about these mailing lists is available at
-http://www.linuxvideo.org/developer/mailinglists.php3
+http://www.linuxvideo.org/devel/mailinglists.html

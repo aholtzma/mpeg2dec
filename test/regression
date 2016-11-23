@@ -11,12 +11,13 @@ dirs=`awk -F '#' '{print $1}' $testfile`
 md5=mmx.md5
 if [ $# -ge 2 ]; then md5=$2.md5; fi
 
+rm -fr data
 mkdir data
 cd data
 
 for dir in $dirs; do
     echo $dir
-    ../../src/mpeg2dec -o md5 $basedir/$dir/stream >/dev/null 2>&1
+    ../../src/mpeg2dec -o md5 $basedir/$dir/stream >/dev/null 2>&1 >md5
     diff -u md5 $basedir/$dir/$md5
     rm -f md5 core
 done

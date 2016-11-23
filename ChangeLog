@@ -1,3 +1,13 @@
+mpeg2dec-0.2.0 Thu Feb 15 20:12:34 PST 2001
+-support for field pictures
+-new 3Dnow/SSE accelerations for motion compensation and color conversion
+-full libmpeg2 and libvo reentrancy
+-various portability enhancements - from big iron to embedded to windows
+-major libvo rewrite - new API more adapted to synchro and speed enhancements
+-pgmpipe output for piping with other programs
+-make install actually installs
+-various cleanups - including removal of the infamous HACK_MODE
+
 mpeg2dec-0.1.7 Thu Nov  2 21:38:33 PST 2000
 -fix the solaris mlib code back bup
 -added Xv support

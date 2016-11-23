@@ -1,6 +1,6 @@
 /*
- * oms_accel.h
- * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * mm_accel.h
+ * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
  *
@@ -19,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-// generic accelerations
-#define OMS_ACCEL_MLIB		0x00000001
+/* generic accelerations */
+#define MM_ACCEL_MLIB		0x00000001
 
-// x86 accelerations
-#define OMS_ACCEL_X86_MMX	0x80000000
-#define OMS_ACCEL_X86_3DNOW	0x40000000
-#define OMS_ACCEL_X86_MMXEXT	0x20000000
+/* x86 accelerations */
+#define MM_ACCEL_X86_MMX	0x80000000
+#define MM_ACCEL_X86_3DNOW	0x40000000
+#define MM_ACCEL_X86_MMXEXT	0x20000000
 
-uint32_t oms_cpu_accel (void);
+uint32_t mm_accel (void);

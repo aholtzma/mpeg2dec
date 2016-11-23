@@ -1,3 +1,27 @@
+mpeg2dec-0.2.0 Thu Feb 15 20:12:34 PST 2001 
+
+The most important new feature is the support for field
+pictures. mpeg2dec is now able to display any conformant
+"main profile @ main level" mpeg-2 stream. This means any
+stream you should actually encounter in practice :)
+
+We also added some more accelerations for motion compensation and
+color conversion - 3Dnow and SSE. Non-x86 accelerations would be
+welcome - patches anyone ?
+
+libmpeg2 and libvo are now fully reentrant. This will enable other
+projects to reuse the mpeg2dec codebase without patches. For the same
+reason we added support for "make install"
+
+Libvo has been switched to a new API. The immediate advantage is that
+it allowed us to get rid of the "HACK_MODE" setting - you really dont
+want to know. In the future this will also help a lot with the
+implementation of synchro.
+
+Portability enhancements - including support for win32 DLLs. This was
+done to get into the hearts of a few more developpers :)
+
+
 mpeg2dec-0.1.7 Thu Nov  2 21:38:33 PST 2000
 
 First release since march ! Lots of new features : improved

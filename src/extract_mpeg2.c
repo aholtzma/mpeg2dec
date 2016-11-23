@@ -1,6 +1,6 @@
 /*
  * extract_mpeg2.c
- * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
  *
@@ -19,25 +19,26 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <stdlib.h>
+#include "config.h"
+
 #include <stdio.h>
-#include <signal.h>
-#include <unistd.h>
-#include <sys/time.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-
-#include "config.h"
-#include "mpeg2.h"
-//#include "video_out.h"
+#include <inttypes.h>
+#ifdef HAVE_GETOPT_H 
+#include <getopt.h> 
+#else 
+#include <unistd.h> 
+#endif 
 
 #define BUFFER_SIZE 262144
 static uint8_t buffer[BUFFER_SIZE];
-static FILE *in_file;
+static FILE * in_file;
 
 static void print_usage (char * argv[])
 {
-    fprintf (stderr,"usage: %s file\n", argv[0]);
+    fprintf (stderr, "usage: %s file\n", argv[0]);
 
     exit (1);
 }
@@ -51,7 +52,7 @@ static void handle_args (int argc, char * argv[])
     }
 
     if (optind < argc) {
-	in_file = fopen (argv[optind], "r");
+	in_file = fopen (argv[optind], "rb");
 	if (!in_file) {
 	    fprintf (stderr, "%s - couldnt open file %s\n", strerror (errno),
 		     argv[optind]);
@@ -72,7 +73,9 @@ static void ps_loop (void)
     uint8_t * end;
     uint8_t * tmp1;
     uint8_t * tmp2;
+    int complain_loudly;
 
+    complain_loudly = 1;
     buf = buffer;
 
     do {
@@ -80,10 +83,22 @@ static void ps_loop (void)
 	buf = buffer;
 
 	while (buf + 4 <= end) {
-	    // check start code
+	    /* check start code */
 	    if (buf[0] || buf[1] || (buf[2] != 0x01)) {
-		fprintf (stderr, "missing start code\n");
-		exit (1);
+		if (complain_loudly) {
+		    fprintf (stderr, "missing start code at %#lx\n",
+			     ftell (in_file) - (end - buf));
+		    if ((buf[0] == 0) && (buf[1] == 0) && (buf[2] == 0))
+			fprintf (stderr, "this stream appears to use "
+				 "zero-byte padding before start codes,\n"
+				 "which is not correct according to the "
+				 "mpeg system standard.\n"
+				 "mp1e was one encoder known to do this "
+				 "before version 1.8.0.\n");
+		    complain_loudly = 0;
+		}
+		buf++;
+		continue;
 	    }
 
 	    switch (buf[3]) {

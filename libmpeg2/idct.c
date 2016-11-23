@@ -1,6 +1,6 @@
 /*
  * idct.c
- * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * Portions of this code are from the MPEG software simulation group
  * idct implementation. This code will be replaced with a new
@@ -37,15 +37,13 @@
 /* this code assumes >> to be a two's-complement arithmetic */
 /* right shift: (-2)>>1 == -1 , (-3)>>1 == -2 */
 
-#include <stdio.h>
 #include "config.h"
-#include "mpeg2.h"
+
+#include <stdio.h>
+#include <inttypes.h>
+
 #include "mpeg2_internal.h"
-
-#include "idct.h"
-#include "idct_mmx.h"
-#include "idct_mlib.h"
-
+#include "mm_accel.h"
 
 #define W1 2841 /* 2048*sqrt (2)*cos (1*pi/16) */
 #define W2 2676 /* 2048*sqrt (2)*cos (2*pi/16) */
@@ -54,8 +52,7 @@
 #define W6 1108 /* 2048*sqrt (2)*cos (6*pi/16) */
 #define W7 565  /* 2048*sqrt (2)*cos (7*pi/16) */
 
-
-// idct main entry point 
+/* idct main entry point  */
 void (*idct_block_copy) (int16_t * block, uint8_t * dest, int stride);
 void (*idct_block_add) (int16_t * block, uint8_t * dest, int stride);
 
@@ -68,12 +65,12 @@ static uint8_t clip_lut[1024];
 void idct_init (void)
 {
 #ifdef ARCH_X86
-    if (config.flags & OMS_ACCEL_X86_MMXEXT) {
-	fprintf (stderr, "Using SSE for IDCT transform\n");
-	idct_block_copy = idct_block_copy_sse;
-	idct_block_add = idct_block_add_sse;
+    if (config.flags & MM_ACCEL_X86_MMXEXT) {
+	fprintf (stderr, "Using MMXEXT for IDCT transform\n");
+	idct_block_copy = idct_block_copy_mmxext;
+	idct_block_add = idct_block_add_mmxext;
 	idct_mmx_init ();
-    } else if (config.flags & OMS_ACCEL_X86_MMX) {
+    } else if (config.flags & MM_ACCEL_X86_MMX) {
 	fprintf (stderr, "Using MMX for IDCT transform\n");
 	idct_block_copy = idct_block_copy_mmx;
 	idct_block_add = idct_block_add_mmx;
@@ -81,7 +78,7 @@ void idct_init (void)
     } else
 #endif
 #ifdef LIBMPEG2_MLIB
-    if (config.flags & OMS_ACCEL_MLIB) {
+    if (config.flags & MM_ACCEL_MLIB) {
 	fprintf (stderr, "Using mlib for IDCT transform\n");
 	idct_block_copy = idct_block_copy_mlib;
 	idct_block_add = idct_block_add_mlib;

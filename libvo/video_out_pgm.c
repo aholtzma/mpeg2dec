@@ -1,6 +1,6 @@
 /*
  * video_out_pgm.c
- * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
  *
@@ -19,92 +19,149 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 
-#include "config.h"
 #include "video_out.h"
 #include "video_out_internal.h"
 
-LIBVO_EXTERN (pgm)
+typedef struct pgm_instance_s {
+    vo_instance_t vo;
+    int prediction_index;
+    vo_frame_t * frame_ptr[3];
+    vo_frame_t frame[3];
+    int width;
+    int height;
+    int framenum;
+    char header[1024];
+    char filename[128];
+} pgm_instance_t;
 
-static vo_info_t vo_info = 
+static void internal_draw_frame (pgm_instance_t * instance, FILE * file,
+				 vo_frame_t * frame)
 {
-	"PGM",
-	"pgm",
-	"walken",
-	""
-};
-
-static int image_width;
-static int image_height;
-static char header[1024];
-static int framenum = -2;
-
-static uint32_t
-init(int width, int height, int fullscreen, char *title, uint32_t format)
-{
-    image_height = height;
-    image_width = width;
-
-    sprintf (header, "P5\n\n%d %d\n255\n", width, height*3/2);
-
-    return 0;
-}
-
-static const vo_info_t*
-get_info(void)
-{
-    return &vo_info;
-}
-
-static void flip_page (void)
-{
-}
-
-static uint32_t draw_slice(uint8_t * src[], int slice_num)
-{
-    return 0;
-}
-
-uint32_t output_pgm_frame (char * fname, uint8_t * src[])
-{
-    FILE * f;
     int i;
 
-    f = fopen (fname, "wb");
-    if (f == NULL) return 1;
-    fwrite (header, strlen (header), 1, f);
-    fwrite (src[0], image_width, image_height, f);
-    for (i = 0; i < image_height/2; i++) {
-	fwrite (src[1]+i*image_width/2, image_width/2, 1, f);
-	fwrite (src[2]+i*image_width/2, image_width/2, 1, f);
+    fwrite (instance->header, strlen (instance->header), 1, file);
+    fwrite (frame->base[0], instance->width, instance->height, file);
+    for (i = 0; i < instance->height >> 1; i++) {
+	fwrite (frame->base[1]+i*instance->width/2, instance->width/2, 1,
+		file);
+	fwrite (frame->base[2]+i*instance->width/2, instance->width/2, 1,
+		file);
     }
-    fclose (f);
-
-    return 0;
 }
 
-static uint32_t draw_frame(uint8_t * src[])
+static int internal_setup (vo_instance_t * _instance, int width, int height,
+			   void (* draw_frame) (vo_frame_t *))
 {
+    pgm_instance_t * instance;
+
+    instance = (pgm_instance_t *) _instance;
+
+    instance->vo.close = libvo_common_free_frames;
+    instance->vo.get_frame = libvo_common_get_frame;
+    instance->width = width;
+    instance->height = height;
+    sprintf (instance->header, "P5\n\n%d %d\n255\n", width, height * 3 / 2);
+    return libvo_common_alloc_frames ((vo_instance_t *) instance,
+				      width, height, sizeof (vo_frame_t),
+				      NULL, NULL, draw_frame);
+}
+
+static void pgm_draw_frame (vo_frame_t * frame)
+{
+    pgm_instance_t * instance;
+    FILE * file;
+
+    instance = (pgm_instance_t *) frame->instance;
+    if (++(instance->framenum) < 0)
+	return;
+    sprintf (instance->filename, "%d.pgm", instance->framenum);
+    file = fopen (instance->filename, "wb");
+    if (!file)
+	return;
+    internal_draw_frame (instance, file, frame);
+    fclose (file);
+}
+
+static int pgm_setup (vo_instance_t * instance, int width, int height)
+{
+    return internal_setup (instance, width, height, pgm_draw_frame);
+}
+
+vo_instance_t * vo_pgm_open (void)
+{
+    pgm_instance_t * instance;
+
+    instance = malloc (sizeof (pgm_instance_t));
+    if (instance == NULL)
+        return NULL;
+
+    instance->vo.setup = pgm_setup;
+    instance->framenum = -2;
+    return (vo_instance_t *) instance;
+}
+
+static void pgmpipe_draw_frame (vo_frame_t * frame)
+{
+    pgm_instance_t * instance;
+
+    instance = (pgm_instance_t *)frame->instance;
+    if (++(instance->framenum) >= 0)
+	internal_draw_frame (instance, stdout, frame);
+}
+
+static int pgmpipe_setup (vo_instance_t * instance, int width, int height)
+{
+    return internal_setup (instance, width, height, pgmpipe_draw_frame);
+}
+
+vo_instance_t * vo_pgmpipe_open (void)
+{
+    pgm_instance_t * instance;
+
+    instance = malloc (sizeof (pgm_instance_t));
+    if (instance == NULL)
+        return NULL;
+
+    instance->vo.setup = pgmpipe_setup;
+    instance->framenum = -2;
+    return (vo_instance_t *) instance;
+}
+
+static void md5_draw_frame (vo_frame_t * frame)
+{
+    pgm_instance_t * instance;
     char buf[100];
 
-    if (++framenum < 0)
-	return 0;
-
-    sprintf (buf, "%d.pgm", framenum);
-    return output_pgm_frame (buf, src);
+    instance = (pgm_instance_t *) frame->instance;
+    pgm_draw_frame (frame);
+    if (instance->framenum < 0)
+	return;
+    sprintf (buf, "md5sum -b %s", instance->filename);
+    system (buf);
+    remove (instance->filename);
 }
 
-static vo_image_buffer_t* 
-allocate_image_buffer()
+static int md5_setup (vo_instance_t * instance, int width, int height)
 {
-    return allocate_image_buffer_common(image_height,image_width,0x32315659);
+    return internal_setup (instance, width, height, md5_draw_frame);
 }
 
-static void	
-free_image_buffer(vo_image_buffer_t* image)
+vo_instance_t * vo_md5_open (void)
 {
-    free_image_buffer_common(image);
+    pgm_instance_t * instance;
+
+    instance = malloc (sizeof (pgm_instance_t));
+    if (instance == NULL)
+        return NULL;
+
+    instance->vo.setup = md5_setup;
+    instance->framenum = -2;
+    return (vo_instance_t *) instance;
 }

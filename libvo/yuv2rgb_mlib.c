@@ -1,6 +1,6 @@
 /*
  * yuv2rgb_mlib.c
- * Copyright (C) 2000 Håkan Hjort <d95hjort@dtek.chalmers.se>
+ * Copyright (C) 2000-2001 Håkan Hjort <d95hjort@dtek.chalmers.se>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
  *
@@ -23,14 +23,13 @@
 
 #ifdef LIBVO_MLIB
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <stddef.h>
+#include <inttypes.h>
 #include <mlib_types.h>
 #include <mlib_status.h>
 #include <mlib_sys.h>
 #include <mlib_video.h>
 
-#include "video_out.h"
 #include "yuv2rgb.h"
 
 static void mlib_YUV2ARGB420_32 (uint8_t * image, uint8_t * py, 

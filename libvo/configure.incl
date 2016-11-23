@@ -4,27 +4,35 @@ AC_SUBST([LIBVO_LIBS])
 dnl check for X11
 AC_PATH_XTRA
 if test x"$no_x" != x"yes"; then
-    AC_DEFINE([LIBVO_X11],,[libvo X11 support])
-    LIBVO_CFLAGS="$LIBVO_CFLAGS $X_CFLAGS"
-    LIBVO_LIBS="$LIBVO_LIBS $X_PRE_LIBS $X_LIBS -lX11 $X_EXTRA_LIBS"
-
     dnl check for Xshm
-    dnl the C code should be modified to take this into account !
     AC_CHECK_LIB([Xext],[XShmCreateImage],
-	[AC_DEFINE([LIBVO_XSHM],,[libvo Xshm support])
-	LIBVO_LIBS="$LIBVO_LIBS -lXext"],,
+	[AC_DEFINE([LIBVO_X11],,[libvo X11 support])
+	LIBVO_CFLAGS="$LIBVO_CFLAGS $X_CFLAGS"
+	LIBVO_LIBS="$LIBVO_LIBS $X_PRE_LIBS $X_LIBS -lX11 $X_EXTRA_LIBS -lXext"
+	dnl check for Xv
+	AC_CHECK_LIB([Xv],[XvShmCreateImage],
+	    [AC_DEFINE([LIBVO_XV],,[libvo Xv support])
+	    LIBVO_LIBS="$LIBVO_LIBS -lXv"],,
+	    [$X_PRE_LIBS $X_LIBS -lX11 $X_EXTRA_LIBS -lXext])],,
 	[$X_PRE_LIBS $X_LIBS -lX11 $X_EXTRA_LIBS])
-
-    dnl check for XV
-    AC_CHECK_LIB([Xv],[XvShmCreateImage],
-	[AC_DEFINE([LIBVO_XV],,[libvo XV support])
-	LIBVO_LIBS="$LIBVO_LIBS -lXv"],,
-	[$X_PRE_LIBS $X_LIBS -lX11 $X_EXTRA_LIBS -lXext])
 fi
 
+dnl check for mlib
+AC_ARG_ENABLE([mlib],
+    [  --disable-mlib          make a version not using mediaLib])
+if test x"$enable_mlib" != x"no"; then
+    cflags_save="$CFLAGS"
+    CFLAGS="$CFLAGS -L/opt/SUNWmlib/lib -R/opt/SUNWmlib/lib"
+    AC_CHECK_LIB([mlib],[mlib_VideoColorYUV2RGB420],
+	[AC_DEFINE([LIBVO_MLIB],,[libvo mediaLib support])
+	LIBVO_CFLAGS="$LIBVO_CFLAGS -I/opt/SUNWmlib/include"
+	LIBVO_LIBS="$LIBVO_LIBS -L/opt/SUNWmlib/lib -R/opt/SUNWmlib/lib -lmlib"])
+    CFLAGS="$cflags_save"
+fi
+
+dnl following drivers are unsupported - dont expect them to compile or work
+
 dnl check for SDL
-dnl   !!! This really needs to check the SDL version. 
-dnl   !!! I think we're using SDL 1.1 features, so 1.0 won't cut it. 
 AC_ARG_ENABLE([sdl],[  --disable-sdl           make a version not using SDL])
 if test x"$enable_sdl" != x"no"; then
     AC_CHECK_PROG([SDLCONFIG],[sdl-config],[yes])
@@ -35,29 +43,8 @@ if test x"$enable_sdl" != x"no"; then
     fi
 fi
 
-dnl check for mlib
-AC_ARG_ENABLE([mlib],
-    [  --disable-mlib          make a version not using mediaLib])
-if test x"$enable_mlib" != x"no"; then
-    AC_CHECK_LIB([mlib],[mlib_VideoColorYUV2RGB420],
-	[AC_DEFINE([LIBVO_MLIB],,[libvo mlib support])
-	LIBVO_CFLAGS="$LIBVO_CFLAGS -I/opt/SUNWmlib/include"
-	LIBVO_LIBS="$LIBVO_LIBS -L/opt/SUNWmlib/lib -lmlib"],,
-	[-L/opt/SUNWmlib/lib])
+dnl check for MGA
+AC_ARG_ENABLE([mga],[  --enable-mga            make a version using MGA])
+if test x"$enable_mga" = x"yes"; then
+    AC_DEFINE([LIBVO_MGA],,[libvo MGA support])
 fi
-
-dnl the following hardware drivers are EXPERIMENTAL.
-dnl we do not attempt to make real checks for them.
-
-dnl check for MGA - EXPERIMENTAL
-AC_ARG_ENABLE([mga],[  --enable-mga            make a version using MGA],
-    [AC_DEFINE([LIBVO_MGA],,[libvo MGA support])])
-
-dnl check for 3dfx - EXPERIMENTAL
-AC_ARG_ENABLE([3dfx],[  --enable-3dfx           make a version using 3dfx],
-    [AC_DEFINE([LIBVO_3DFX],,[libvo 3dfx support])
-    LIBVO_LIBS="$LIBVO_LIBS -lXxf86dga"])
-
-dnl check for syncfb - EXPERIMENTAL
-AC_ARG_ENABLE([syncfb],[  --enable-syncfb         make a version using syncfb],
-    [AC_DEFINE([LIBVO_SYNCFB],,[libvo syncfb support])])

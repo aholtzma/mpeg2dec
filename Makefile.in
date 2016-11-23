@@ -62,18 +62,17 @@ host_triplet = @host@
 AS = @AS@
 CC = @CC@
 DLLTOOL = @DLLTOOL@
-LD = @LD@
+INCLUDES = @INCLUDES@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
-NM = @NM@
 OBJDUMP = @OBJDUMP@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
-SUBDIRS = autotools include test libmpeg2 libvo src
+SUBDIRS = autotools include test doc libmpeg2 libvo src
 
 EXTRA_DIST = bootstrap
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4

@@ -71,11 +71,12 @@ OBJDUMP = @OBJDUMP@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
+
+EXTRA_DIST = libvo.txt
 mkinstalldirs = $(SHELL) $(top_srcdir)/autotools/mkinstalldirs
 CONFIG_HEADER = ../include/config.h
 CONFIG_CLEAN_FILES = 
-DIST_COMMON =  Makefile.am Makefile.in config.guess config.sub \
-install-sh ltconfig ltmain.sh missing mkinstalldirs
+DIST_COMMON =  Makefile.am Makefile.in
 
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
@@ -85,7 +86,7 @@ GZIP_ENV = --best
 all: all-redirect
 .SUFFIXES:
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
-	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps autotools/Makefile
+	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps doc/Makefile
 
 Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
 	cd $(top_builddir) \
@@ -97,7 +98,7 @@ TAGS:
 
 distdir = $(top_builddir)/$(PACKAGE)-$(VERSION)/$(subdir)
 
-subdir = autotools
+subdir = doc
 
 distdir: $(DISTFILES)
 	@for file in $(DISTFILES); do \

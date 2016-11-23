@@ -6,12 +6,27 @@
 /* Define as __inline if that's what the C compiler calls it.  */
 #undef inline
 
+/* Define as the return type of signal handlers (int or void).  */
+#undef RETSIGTYPE
+
+/* Define to `unsigned' if <sys/types.h> doesn't define.  */
+#undef size_t
+
+/* Define if you have the ANSI C header files.  */
+#undef STDC_HEADERS
+
 /* Define if your processor stores words with the most significant
    byte first (like Motorola and SPARC, unlike Intel and VAX).  */
 #undef WORDS_BIGENDIAN
 
 /* Define if the X Window System is missing or not being used.  */
 #undef X_DISPLAY_MISSING
+
+/* Define if you have the memalign function.  */
+#undef HAVE_MEMALIGN
+
+/* Define if you have the <getopt.h> header file.  */
+#undef HAVE_GETOPT_H
 
 /* Name of package */
 #undef PACKAGE
@@ -22,33 +37,24 @@
 /* x86 architecture */
 #undef ARCH_X86
 
-/* maximum supported data alignment */
-#undef ATTRIBUTE_ALIGNED_MAX
-
-/* libmpeg2 mlib support */
+/* libmpeg2 mediaLib support */
 #undef LIBMPEG2_MLIB
 
 /* libvo X11 support */
 #undef LIBVO_X11
 
-/* libvo Xshm support */
-#undef LIBVO_XSHM
-
-/* libvo XV support */
+/* libvo Xv support */
 #undef LIBVO_XV
+
+/* libvo mediaLib support */
+#undef LIBVO_MLIB
 
 /* libvo SDL support */
 #undef LIBVO_SDL
 
-/* libvo mlib support */
-#undef LIBVO_MLIB
-
 /* libvo MGA support */
 #undef LIBVO_MGA
 
-/* libvo 3dfx support */
-#undef LIBVO_3DFX
-
-/* libvo syncfb support */
-#undef LIBVO_SYNCFB
+/* maximum supported data alignment */
+#undef ATTRIBUTE_ALIGNED_MAX
 
