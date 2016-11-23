@@ -485,7 +485,7 @@ static int rgb_internal (mpeg2convert_rgb_order_t order, unsigned int bpp,
     int convert420 = 0;
     int rgb_stride_min = ((bpp + 7) >> 3) * seq->width;
 
-#ifdef ARCH_X86_
+#ifdef ARCH_X86
     if (!copy && (accel & MPEG2_ACCEL_X86_MMXEXT)) {
 	convert420 = 0;
 	copy = mpeg2convert_rgb_mmxext (order, bpp, seq);
