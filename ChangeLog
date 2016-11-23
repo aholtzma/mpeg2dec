@@ -1,3 +1,10 @@
+mpeg2dec-0.3.1 Fri Dec 13 22:15:36 PST 2002
+-integrated CPU detection code
+-alpha IDCT/MC optimizations
+-C IDCT optimizations
+-fixed all known memory leaks
+-workarounds for HPPA/IA64/sparc build issues
+
 mpeg2dec-0.3.0 Wed Nov 27 23:23:23 PST 2002
 -first release using the new libmpeg2 API
 -improved error handling - does not seek to the next sequence header anymore

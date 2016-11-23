@@ -47,7 +47,7 @@ void * mpeg2_malloc (int size, int reason)
 	    return buf;
     }
 
-#if defined(HAVE_MEMALIGN) && !defined(__cplusplus)
+#if defined(HAVE_MEMALIGN) && !defined(__cplusplus) && !defined(DEBUG)
     return memalign (16, size);
 #else
     buf = (char *) malloc (size + 15 + sizeof (void **));
@@ -68,7 +68,7 @@ void mpeg2_free (void * buf)
     if (mpeg2_free_hook && mpeg2_free_hook (buf))
 	return;
 
-#ifdef HAVE_MEMALIGN
+#if defined(HAVE_MEMALIGN) && !defined(__cplusplus) && !defined(DEBUG)
     free (buf);
 #else
     free (*(((void **)buf) - 1));

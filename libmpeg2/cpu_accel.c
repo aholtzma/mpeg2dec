@@ -25,8 +25,9 @@
 
 #include <inttypes.h>
 
-#include "mm_accel.h"
+#include "mpeg2.h"
 
+#ifdef ACCEL_DETECT
 #ifdef ARCH_X86
 static inline uint32_t arch_accel (void)
 {
@@ -85,9 +86,9 @@ static inline uint32_t arch_accel (void)
     if (! (edx & 0x00800000))	/* no MMX */
 	return 0;
 
-    caps = MM_ACCEL_X86_MMX;
+    caps = MPEG2_ACCEL_X86_MMX;
     if (edx & 0x02000000)	/* SSE - identical to AMD MMX extensions */
-	caps = MM_ACCEL_X86_MMX | MM_ACCEL_X86_MMXEXT;
+	caps = MPEG2_ACCEL_X86_MMX | MPEG2_ACCEL_X86_MMXEXT;
 
     cpuid (0x80000000, eax, ebx, ecx, edx);
     if (eax < 0x80000001)	/* no extended capabilities */
@@ -96,10 +97,10 @@ static inline uint32_t arch_accel (void)
     cpuid (0x80000001, eax, ebx, ecx, edx);
 
     if (edx & 0x80000000)
-	caps |= MM_ACCEL_X86_3DNOW;
+	caps |= MPEG2_ACCEL_X86_3DNOW;
 
     if (AMD && (edx & 0x00400000))	/* AMD MMX extensions */
-	caps |= MM_ACCEL_X86_MMXEXT;
+	caps |= MPEG2_ACCEL_X86_MMXEXT;
 
     return caps;
 }
@@ -139,23 +140,36 @@ static inline uint32_t arch_accel (void)
 		  : "r" (-1));
 
     signal (SIGILL, SIG_DFL);
-    return MM_ACCEL_PPC_ALTIVEC;
+    return MPEG2_ACCEL_PPC_ALTIVEC;
 }
 #endif /* ARCH_PPC */
 
-uint32_t mm_accel (void)
+#ifdef ARCH_ALPHA
+static inline uint32_t arch_accel (void)
 {
-#if defined (ARCH_X86) || defined (ARCH_PPC)
-    static int got_accel = 0;
-    static uint32_t accel = 0;	/* initialized to work around a mingw32 bug */
+    uint64_t no_mvi;
 
-    if (!got_accel) {
-	got_accel = 1;
-	accel = arch_accel ();
-    }
-
-    return accel;
-#else
-    return 0;
+    asm volatile ("amask %1, %0"
+		  : "=r" (no_mvi)
+		  : "rI" (256));	/* AMASK_MVI */
+    return no_mvi ? MPEG2_ACCEL_ALPHA : (MPEG2_ACCEL_ALPHA |
+					 MPEG2_ACCEL_ALPHA_MVI);
+}
+#endif /* ARCH_ALPHA */
 #endif
+
+uint32_t mpeg2_detect_accel (void)
+{
+    uint32_t accel;
+
+    accel = 0;
+#ifdef ACCEL_DETECT
+#ifdef LIBMPEG2_MLIB
+    accel = MPEG2_ACCEL_MLIB;
+#endif
+#if defined (ARCH_X86) || defined (ARCH_PPC) || defined (ARCH_ALPHA)
+    accel |= arch_accel ();
+#endif
+#endif
+    return accel;
 }

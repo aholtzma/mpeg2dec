@@ -28,7 +28,6 @@
 
 #include "mpeg2.h"
 #include "mpeg2_internal.h"
-#include "mm_accel.h"
 #include "attributes.h"
 #ifdef ARCH_X86
 #include "mmx.h"
@@ -104,15 +103,15 @@ static void state_restore_altivec (cpu_state_t * state)
 }
 #endif
 
-void mpeg2_cpu_state_init (uint32_t mm_accel)
+void mpeg2_cpu_state_init (uint32_t accel)
 {
 #ifdef ARCH_X86
-    if (mm_accel & MM_ACCEL_X86_MMX) {
+    if (accel & MPEG2_ACCEL_X86_MMX) {
 	mpeg2_cpu_state_restore = state_restore_mmx;
     }
 #endif
 #ifdef ARCH_PPC
-    if (mm_accel & MM_ACCEL_PPC_ALTIVEC) {
+    if (accel & MPEG2_ACCEL_PPC_ALTIVEC) {
 	mpeg2_cpu_state_save = state_save_altivec;
 	mpeg2_cpu_state_restore = state_restore_altivec;
     }

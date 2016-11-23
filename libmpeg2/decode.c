@@ -31,6 +31,8 @@
 #include "mpeg2_internal.h"
 #include "convert.h"
 
+static int mpeg2_accels = 0;
+
 #define BUFFER_SIZE (1194 * 1024)
 
 const mpeg2_info_t * mpeg2_info (mpeg2dec_t * mpeg2dec)
@@ -293,20 +295,20 @@ int mpeg2_parse_header (mpeg2dec_t * mpeg2dec)
 }
 
 void mpeg2_convert (mpeg2dec_t * mpeg2dec,
-		    void (* convert) (int, int, void *,
+		    void (* convert) (int, int, uint32_t, void *,
 				      struct convert_init_s *), void * arg)
 {
     convert_init_t convert_init;
     int size;
 
     convert_init.id = NULL;
-    convert (mpeg2dec->decoder.width, mpeg2dec->decoder.height, arg,
-	     &convert_init);
+    convert (mpeg2dec->decoder.width, mpeg2dec->decoder.height,
+	     mpeg2_accels, arg, &convert_init);
     if (convert_init.id_size) {
 	convert_init.id = mpeg2dec->convert_id =
 	    mpeg2_malloc (convert_init.id_size, ALLOC_CONVERT_ID);
-	convert (mpeg2dec->decoder.width, mpeg2dec->decoder.height, arg,
-		 &convert_init);
+	convert (mpeg2dec->decoder.width, mpeg2dec->decoder.height,
+		 mpeg2_accels, arg, &convert_init);
     }
     mpeg2dec->convert_size[0] = size = convert_init.buf_size[0];
     mpeg2dec->convert_size[1] = size += convert_init.buf_size[1];
@@ -338,8 +340,10 @@ void mpeg2_set_buf (mpeg2dec_t * mpeg2dec, uint8_t * buf[3], void * id)
 	    mpeg2dec->fbuf[2] = mpeg2dec->fbuf[1];
 	    mpeg2dec->fbuf[1] = mpeg2dec->fbuf[0];
 	}
-    } else
-	fbuf = &(mpeg2dec->fbuf_alloc[mpeg2dec->alloc_index++].fbuf);
+    } else {
+	fbuf = &(mpeg2dec->fbuf_alloc[mpeg2dec->alloc_index].fbuf);
+	mpeg2dec->alloc_index_user = ++mpeg2dec->alloc_index;
+    }
     fbuf->buf[0] = buf[0];
     fbuf->buf[1] = buf[1];
     fbuf->buf[2] = buf[2];
@@ -373,22 +377,29 @@ void mpeg2_pts (mpeg2dec_t * mpeg2dec, uint32_t pts)
     mpeg2dec->bytes_since_pts = 0;
 }
 
-mpeg2dec_t * mpeg2_init (uint32_t mm_accel)
+uint32_t mpeg2_accel (uint32_t accel)
 {
-    static int do_init = 1;
+    if (!mpeg2_accels) {
+	if (accel & MPEG2_ACCEL_DETECT)
+	    accel |= mpeg2_detect_accel ();
+	mpeg2_accels = accel |= MPEG2_ACCEL_DETECT;
+	mpeg2_cpu_state_init (accel);
+	mpeg2_idct_init (accel);
+	mpeg2_mc_init (accel);
+    }
+    return mpeg2_accels & ~MPEG2_ACCEL_DETECT;
+}
+
+mpeg2dec_t * mpeg2_init (void)
+{
     mpeg2dec_t * mpeg2dec;
+
+    mpeg2_accel (MPEG2_ACCEL_DETECT);
 
     mpeg2dec = (mpeg2dec_t *) mpeg2_malloc (sizeof (mpeg2dec_t),
 					    ALLOC_MPEG2DEC);
     if (mpeg2dec == NULL)
 	return NULL;
-
-    if (do_init) {
-	do_init = 0;
-	mpeg2_cpu_state_init (mm_accel);
-	mpeg2_idct_init (mm_accel);
-	mpeg2_mc_init (mm_accel);
-    }
 
     memset (mpeg2dec, 0, sizeof (mpeg2dec_t));
 
@@ -400,6 +411,7 @@ mpeg2dec_t * mpeg2_init (uint32_t mm_accel)
     mpeg2dec->code = 0xb4;
     mpeg2dec->first_decode_slice = 1;
     mpeg2dec->nb_decode_slices = 0xb0 - 1;
+    mpeg2dec->convert_id = NULL;
 
     /* initialize substructures */
     mpeg2_header_state_init (mpeg2dec);
@@ -409,9 +421,19 @@ mpeg2dec_t * mpeg2_init (uint32_t mm_accel)
 
 void mpeg2_close (mpeg2dec_t * mpeg2dec)
 {
-    /* static uint8_t finalizer[] = {0,0,1,0xb4}; */
+    int i;
 
+    /* static uint8_t finalizer[] = {0,0,1,0xb4}; */
     /* mpeg2_decode_data (mpeg2dec, finalizer, finalizer+4); */
 
     mpeg2_free (mpeg2dec->chunk_buffer);
+    if (!mpeg2dec->custom_fbuf)
+	for (i = mpeg2dec->alloc_index_user; i < mpeg2dec->alloc_index; i++)
+	    mpeg2_free (mpeg2dec->fbuf_alloc[i].fbuf.buf[0]);
+    if (mpeg2dec->convert_start)
+	for (i = 0; i < 3; i++)
+	    mpeg2_free (mpeg2dec->yuv_buf[i][0]);
+    if (mpeg2dec->convert_id)
+	mpeg2_free (mpeg2dec->convert_id);
+    mpeg2_free (mpeg2dec);
 }

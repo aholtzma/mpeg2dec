@@ -76,7 +76,6 @@ MAINT = @MAINT@
 MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
 MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
-MPEG2DEC_CFLAGS = @MPEG2DEC_CFLAGS@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
@@ -129,8 +128,6 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-AM_CFLAGS = @MPEG2DEC_CFLAGS@
-
 noinst_PROGRAMS = sample1 sample2
 sample1_SOURCES = sample1.c
 sample1_LDADD = $(top_builddir)/libmpeg2/libmpeg2.la

@@ -27,11 +27,10 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
+#include "mpeg2.h"
 #include "convert.h"
 #include "convert_internal.h"
-#include "mm_accel.h"
 
-static uint32_t accel = 0;
 static uint32_t matrix_coefficients = 6;
 
 const int32_t Inverse_Table_6_9[8][4] = {
@@ -398,7 +397,8 @@ static void convert_start (void * _id, uint8_t * const * dest, int flags)
 }
 
 static void convert_internal (int order, int bpp, int width, int height,
-			      void * arg, convert_init_t * result)
+			      uint32_t accel, void * arg,
+			      convert_init_t * result)
 {
     convert_rgb_t * id = (convert_rgb_t *) result->id;
 
@@ -415,70 +415,71 @@ static void convert_internal (int order, int bpp, int width, int height,
 
 	result->copy = NULL;
 #ifdef ARCH_X86
-	if ((result->copy == NULL) && (accel & MM_ACCEL_X86_MMXEXT)) {
+	if ((result->copy == NULL) && (accel & MPEG2_ACCEL_X86_MMXEXT)) {
 	    result->copy = yuv2rgb_init_mmxext (order, bpp);
-	    if (result->copy)
-		fprintf (stderr, "Using MMXEXT for colorspace transform\n");
 	}
-	if ((result->copy == NULL) && (accel & MM_ACCEL_X86_MMX)) {
+	if ((result->copy == NULL) && (accel & MPEG2_ACCEL_X86_MMX)) {
 	    result->copy = yuv2rgb_init_mmx (order, bpp);
-	    if (result->copy)
-		fprintf (stderr, "Using MMX for colorspace transform\n");
 	}
 #endif
 #ifdef LIBVO_MLIB
-	if ((result->copy == NULL) && (accel & MM_ACCEL_MLIB)) {
+	if ((result->copy == NULL) && (accel & MPEG2_ACCEL_MLIB)) {
 	    result->copy = yuv2rgb_init_mlib (order, bpp);
-	    if (result->copy)
-		fprintf (stderr, "Using mlib for colorspace transform\n");
 	}
 #endif
 	if (result->copy == NULL) {
-	    fprintf (stderr, "No accelerated colorspace conversion found\n");
 	    result->copy = convert_yuv2rgb_c;
 	    id->yuv2rgb = yuv2rgb_c_init (order, bpp);
 	}
     }
 }
 
-void convert_rgb32 (int width, int height, void * arg, convert_init_t * result)
+void convert_rgb32 (int width, int height, uint32_t accel, void * arg,
+		    convert_init_t * result)
 {
-    convert_internal (CONVERT_RGB, 32, width, height, arg, result);
+    convert_internal (CONVERT_RGB, 32, width, height, accel, arg, result);
 }
 
-void convert_rgb24 (int width, int height, void * arg, convert_init_t * result)
+void convert_rgb24 (int width, int height, uint32_t accel, void * arg,
+		    convert_init_t * result)
 {
-    convert_internal (CONVERT_RGB, 24, width, height, arg, result);
+    convert_internal (CONVERT_RGB, 24, width, height, accel, arg, result);
 }
 
-void convert_rgb16 (int width, int height, void * arg, convert_init_t * result)
+void convert_rgb16 (int width, int height, uint32_t accel, void * arg,
+		    convert_init_t * result)
 {
-    convert_internal (CONVERT_RGB, 16, width, height, arg, result);
+    convert_internal (CONVERT_RGB, 16, width, height, accel, arg, result);
 }
 
-void convert_rgb15 (int width, int height, void * arg, convert_init_t * result)
+void convert_rgb15 (int width, int height, uint32_t accel, void * arg,
+		    convert_init_t * result)
 {
-    convert_internal (CONVERT_RGB, 15, width, height, arg, result);
+    convert_internal (CONVERT_RGB, 15, width, height, accel, arg, result);
 }
 
-void convert_bgr32 (int width, int height, void * arg, convert_init_t * result)
+void convert_bgr32 (int width, int height, uint32_t accel, void * arg,
+		    convert_init_t * result)
 {
-    convert_internal (CONVERT_BGR, 32, width, height, arg, result);
+    convert_internal (CONVERT_BGR, 32, width, height, accel, arg, result);
 }
 
-void convert_bgr24 (int width, int height, void * arg, convert_init_t * result)
+void convert_bgr24 (int width, int height, uint32_t accel, void * arg,
+		    convert_init_t * result)
 {
-    convert_internal (CONVERT_BGR, 24, width, height, arg, result);
+    convert_internal (CONVERT_BGR, 24, width, height, accel, arg, result);
 }
 
-void convert_bgr16 (int width, int height, void * arg, convert_init_t * result)
+void convert_bgr16 (int width, int height, uint32_t accel, void * arg,
+		    convert_init_t * result)
 {
-    convert_internal (CONVERT_BGR, 16, width, height, arg, result);
+    convert_internal (CONVERT_BGR, 16, width, height, accel, arg, result);
 }
 
-void convert_bgr15 (int width, int height, void * arg, convert_init_t * result)
+void convert_bgr15 (int width, int height, uint32_t accel, void * arg,
+		    convert_init_t * result)
 {
-    convert_internal (CONVERT_BGR, 15, width, height, arg, result);
+    convert_internal (CONVERT_BGR, 15, width, height, accel, arg, result);
 }
 
 convert_t * convert_rgb (int order, int bpp)
@@ -491,9 +492,4 @@ convert_t * convert_rgb (int order, int bpp)
 	case 15: return (order == CONVERT_RGB) ? convert_rgb15 : convert_bgr15;
 	}
     return NULL;
-}
-
-void convert_accel (uint32_t mm_accel)
-{
-    accel = mm_accel;
 }

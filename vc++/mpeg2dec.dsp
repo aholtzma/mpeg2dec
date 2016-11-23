@@ -95,10 +95,6 @@ SOURCE=..\src\gettimeofday.c
 
 SOURCE=..\src\mpeg2dec.c
 # End Source File
-# Begin Source File
-
-SOURCE=.\cpu_accel.obj
-# End Source File
 # End Group
 # Begin Group "Header Files"
 

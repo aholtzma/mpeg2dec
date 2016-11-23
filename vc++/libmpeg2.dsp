@@ -109,6 +109,10 @@ SOURCE=..\libmpeg2\slice.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\cpu_accel.obj
+# End Source File
+# Begin Source File
+
 SOURCE=.\cpu_state.obj
 # End Source File
 # Begin Source File

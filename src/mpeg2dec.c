@@ -38,7 +38,6 @@
 #include "mpeg2.h"
 #include "video_out.h"
 #include "convert.h"
-#include "mm_accel.h"
 #include "gettimeofday.h"
 
 #define BUFFER_SIZE 4096
@@ -47,7 +46,6 @@ static FILE * in_file;
 static int demux_track = 0;
 static int demux_pid = 0;
 static int demux_pva = 0;
-static int disable_accel = 0;
 static mpeg2dec_t * mpeg2dec;
 static vo_open_t * output_open = NULL;
 static vo_instance_t * output;
@@ -190,7 +188,7 @@ static void handle_args (int argc, char ** argv)
 	    break;
 
 	case 'c':
-	    disable_accel = 1;
+	    mpeg2_accel (0);
 	    break;
 
 	default:
@@ -667,8 +665,6 @@ static void es_loop (void)
 
 int main (int argc, char ** argv)
 {
-    uint32_t accel;
-
 #ifdef HAVE_IO_H
     setmode (fileno (stdout), O_BINARY);
 #endif
@@ -678,15 +674,12 @@ int main (int argc, char ** argv)
 
     handle_args (argc, argv);
 
-    accel = disable_accel ? 0 : (mm_accel () | MM_ACCEL_MLIB);
-
-    convert_accel (accel);
     output = output_open ();
     if (output == NULL) {
 	fprintf (stderr, "Can not open output\n");
 	return 1;
     }
-    mpeg2dec = mpeg2_init (accel);
+    mpeg2dec = mpeg2_init ();
     if (mpeg2dec == NULL)
 	exit (1);
 

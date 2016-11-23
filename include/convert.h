@@ -37,7 +37,7 @@ typedef struct convert_init_s {
     void (* copy) (void * id, uint8_t * const * src, unsigned int v_offset);
 } convert_init_t;
 
-typedef void convert_t (int width, int height, void * arg,
+typedef void convert_t (int width, int height, uint32_t accel, void * arg,
 			convert_init_t * result);
 
 convert_t convert_rgb32;
@@ -52,7 +52,5 @@ convert_t convert_bgr15;
 #define CONVERT_RGB 0
 #define CONVERT_BGR 1
 convert_t * convert_rgb (int order, int bpp);
-
-void convert_accel (uint32_t accel);
 
 #endif /* CONVERT_H */

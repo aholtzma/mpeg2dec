@@ -31,7 +31,8 @@
 
 extern mpeg2_mc_t mpeg2_mc;
 extern void (* mpeg2_idct_copy) (int16_t * block, uint8_t * dest, int stride);
-extern void (* mpeg2_idct_add) (int16_t * block, uint8_t * dest, int stride);
+extern void (* mpeg2_idct_add) (int last, int16_t * block,
+				uint8_t * dest, int stride);
 extern void (* mpeg2_cpu_state_save) (cpu_state_t * state);
 extern void (* mpeg2_cpu_state_restore) (cpu_state_t * state);
 
@@ -581,7 +582,7 @@ static void get_intra_block_B15 (decoder_t * const decoder)
     decoder->bitstream_ptr = bit_ptr;
 }
 
-static void get_non_intra_block (decoder_t * const decoder)
+static int get_non_intra_block (decoder_t * const decoder)
 {
     int i;
     int j;
@@ -702,6 +703,7 @@ static void get_non_intra_block (decoder_t * const decoder)
     decoder->bitstream_buf = bit_buf;
     decoder->bitstream_bits = bits;
     decoder->bitstream_ptr = bit_ptr;
+    return i;
 }
 
 static void get_mpeg1_intra_block (decoder_t * const decoder)
@@ -823,7 +825,7 @@ static void get_mpeg1_intra_block (decoder_t * const decoder)
     decoder->bitstream_ptr = bit_ptr;
 }
 
-static void get_mpeg1_non_intra_block (decoder_t * const decoder)
+static int get_mpeg1_non_intra_block (decoder_t * const decoder)
 {
     int i;
     int j;
@@ -950,6 +952,7 @@ static void get_mpeg1_non_intra_block (decoder_t * const decoder)
     decoder->bitstream_buf = bit_buf;
     decoder->bitstream_bits = bits;
     decoder->bitstream_ptr = bit_ptr;
+    return i;
 }
 
 static inline void slice_intra_DCT (decoder_t * const decoder, const int cc,
@@ -983,11 +986,13 @@ static inline void slice_intra_DCT (decoder_t * const decoder, const int cc,
 static inline void slice_non_intra_DCT (decoder_t * const decoder,
 					uint8_t * const dest, const int stride)
 {
+    int last;
+
     if (decoder->mpeg1)
-	get_mpeg1_non_intra_block (decoder);
+	last = get_mpeg1_non_intra_block (decoder);
     else
-	get_non_intra_block (decoder);
-    mpeg2_idct_add (decoder->DCTblock, dest, stride);
+	last = get_non_intra_block (decoder);
+    mpeg2_idct_add (last, decoder->DCTblock, dest, stride);
 }
 
 #define MOTION(table,ref,motion_x,motion_y,size,y)			      \

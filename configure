@@ -464,7 +464,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO AMTAR install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM AWK SET_MAKE MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT build build_cpu build_vendor build_os host host_cpu host_vendor host_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CPP EGREP LN_S ECHO RANLIB ac_ct_RANLIB LIBTOOL INCLUDES LIBMPEG2_CFLAGS LIBMPEG2_LIBS LIBVO_CFLAGS LIBVO_LIBS X_CFLAGS X_PRE_LIBS X_LIBS X_EXTRA_LIBS SDLCONFIG MPEG2DEC_CFLAGS LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO AMTAR install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM AWK SET_MAKE MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT build build_cpu build_vendor build_os host host_cpu host_vendor host_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CPP EGREP LN_S ECHO RANLIB ac_ct_RANLIB LIBTOOL INCLUDES LIBMPEG2_CFLAGS LIBMPEG2_LIBS LIBVO_CFLAGS LIBVO_LIBS X_CFLAGS X_PRE_LIBS X_LIBS X_EXTRA_LIBS SDLCONFIG LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -1012,15 +1012,16 @@ Optional Features:
                           (and sometimes confusing) to the casual installer
   --disable-dependency-tracking Speeds up one-time builds
   --enable-dependency-tracking  Do not reject slow dependency extractors
+  --enable-debug          debug mode configuration
   --enable-shared=PKGS  build shared libraries default=no
   --enable-static=PKGS  build static libraries default=yes
   --enable-fast-install=PKGS  optimize for fast installation default=yes
   --disable-libtool-lock  avoid locking (might break parallel builds)
+  --disable-accel-detect  make a version without accel detection code
   --disable-mlib          make a version not using mediaLib
   --enable-directx=DIR    use Win32 DirectX headers in DIR
   --disable-sdl           make a version not using SDL
   --enable-warnings       treat warnings as errors
-  --enable-gprof          make a version using gprof
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -1440,7 +1441,7 @@ ac_config_guess="$SHELL $ac_aux_dir/config.guess"
 ac_config_sub="$SHELL $ac_aux_dir/config.sub"
 ac_configure="$SHELL $ac_aux_dir/configure" # This should be Cygnus configure.
 
-                                                                                                              ac_config_files="$ac_config_files Makefile autotools/Makefile include/Makefile test/Makefile doc/Makefile src/Makefile libmpeg2/Makefile libvo/Makefile vc++/Makefile libmpeg2/libmpeg2.pc src/libcpuaccel.pc"
+                                                                                                    ac_config_files="$ac_config_files Makefile autotools/Makefile include/Makefile test/Makefile doc/Makefile src/Makefile libmpeg2/Makefile libvo/Makefile vc++/Makefile libmpeg2/libmpeg2.pc"
 
 am__api_version="1.7"
 # Find a good install program.  We prefer a C program (faster),
@@ -1681,7 +1682,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=mpeg2dec
- VERSION=0.3.0
+ VERSION=0.3.1
 
 
 cat >>confdefs.h <<_ACEOF
@@ -3215,8 +3216,20 @@ echo "${ECHO_T}$ac_cv_try_cflags_ok" >&6
 	:
     fi
 
-        OPT_CFLAGS="$CFLAGS -fomit-frame-pointer"
-    echo "$as_me:$LINENO: checking if $CC supports $OPT_CFLAGS flags" >&5
+    # Check whether --enable-debug or --disable-debug was given.
+if test "${enable_debug+set}" = set; then
+  enableval="$enable_debug"
+
+fi;
+    if test x"$enable_debug" = x"yes"; then
+
+cat >>confdefs.h <<\_ACEOF
+#define DEBUG
+_ACEOF
+
+    else
+		OPT_CFLAGS="$CFLAGS -fomit-frame-pointer"
+	echo "$as_me:$LINENO: checking if $CC supports $OPT_CFLAGS flags" >&5
 echo $ECHO_N "checking if $CC supports $OPT_CFLAGS flags... $ECHO_C" >&6
     SAVE_CFLAGS="$CFLAGS"
     CFLAGS="$OPT_CFLAGS"
@@ -3258,6 +3271,7 @@ echo "${ECHO_T}$ac_cv_try_cflags_ok" >&6
 	CFLAGS=$OPT_CFLAGS
     else
 	:
+    fi
     fi
 
         case "$host" in
@@ -3367,7 +3381,7 @@ _ACEOF
 	:
     fi;;
     sparc-* | sparc64-*)
-	OPT_CFLAGS="$CFLAGS -mcpu=ultrasparc -mvis -Wa,-Av9"
+	OPT_CFLAGS="$CFLAGS -mcpu=ultrasparc -mvis -Wa,-Av9b"
 	echo "$as_me:$LINENO: checking if $CC supports $OPT_CFLAGS flags" >&5
 echo $ECHO_N "checking if $CC supports $OPT_CFLAGS flags... $ECHO_C" >&6
     SAVE_CFLAGS="$CFLAGS"
@@ -3408,6 +3422,56 @@ rm -f conftest.$ac_objext conftest.$ac_ext
 echo "${ECHO_T}$ac_cv_try_cflags_ok" >&6
     if test x"$ac_cv_try_cflags_ok" = x"yes"; then
 	CFLAGS=$OPT_CFLAGS
+    else
+	:
+    fi;;
+    alpha*)
+	OPT_CFLAGS="$CFLAGS -Wa,-mev6"
+	echo "$as_me:$LINENO: checking if $CC supports $OPT_CFLAGS flags" >&5
+echo $ECHO_N "checking if $CC supports $OPT_CFLAGS flags... $ECHO_C" >&6
+    SAVE_CFLAGS="$CFLAGS"
+    CFLAGS="$OPT_CFLAGS"
+    cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+#include "confdefs.h"
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_try_cflags_ok=yes
+else
+  echo "$as_me: failed program was:" >&5
+cat conftest.$ac_ext >&5
+ac_cv_try_cflags_ok=no
+fi
+rm -f conftest.$ac_objext conftest.$ac_ext
+    CFLAGS="$SAVE_CFLAGS"
+    echo "$as_me:$LINENO: result: $ac_cv_try_cflags_ok" >&5
+echo "${ECHO_T}$ac_cv_try_cflags_ok" >&6
+    if test x"$ac_cv_try_cflags_ok" = x"yes"; then
+	CFLAGS=$OPT_CFLAGS;
+
+cat >>confdefs.h <<\_ACEOF
+#define ARCH_ALPHA
+_ACEOF
+
     else
 	:
     fi;;
@@ -4813,7 +4877,7 @@ test "x$enable_libtool_lock" != xno && enable_libtool_lock=yes
 case $host in
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 4816 "configure"' > conftest.$ac_ext
+  echo '#line 4880 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -5327,7 +5391,7 @@ chmod -w .
 save_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -o out/conftest2.$ac_objext"
 compiler_c_o=no
-if { (eval echo configure:5330: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>out/conftest.err; } && test -s out/conftest2.$ac_objext; then
+if { (eval echo configure:5394: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>out/conftest.err; } && test -s out/conftest2.$ac_objext; then
   # The compiler can only warn and ignore the option if not recognized
   # So say no if there are warnings
   if test -s out/conftest.err; then
@@ -7093,7 +7157,7 @@ else
     lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 7096 "configure"
+#line 7160 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -7191,7 +7255,7 @@ else
     lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 7194 "configure"
+#line 7258 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -9386,7 +9450,7 @@ if test "${ac_cv_builtin_expect+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   cat > conftest.c <<EOF
-#line 9389 "configure"
+#line 9453 "configure"
 int foo (int a)
 {
     a = __builtin_expect (a, 10);
@@ -9786,14 +9850,15 @@ _ACEOF
 echo "$as_me:$LINENO: checking if libtool supports -prefer-non-pic flag" >&5
 echo $ECHO_N "checking if libtool supports -prefer-non-pic flag... $ECHO_C" >&6
     mkdir ac_test_libtool; cd ac_test_libtool; ac_cv_libtool_non_pic=no
-    echo "int g (int i); int f (int i) {return g(i);}" >f.c
-    echo "int g (int i) {return i;}" >g.c
+    echo "int g (int i); int f (int i) {return g (i);}" >f.c
+    echo "int (* hook) (int) = 0; int g (int i) {if (hook) i = hook (i); return i + 1;}" >g.c
     ../libtool --mode=compile $CC $CFLAGS -prefer-non-pic \
 		-c f.c >/dev/null 2>&1 && \
 	../libtool --mode=compile $CC $CFLAGS -prefer-non-pic \
 		-c g.c >/dev/null 2>&1 && \
 	../libtool --mode=link $CC $CFLAGS -prefer-non-pic -o libfoo.la \
-		f.lo g.lo >/dev/null 2>&1 && ac_cv_libtool_non_pic=yes
+		-rpath / f.lo g.lo >/dev/null 2>&1 &&
+	ac_cv_libtool_non_pic=yes
     cd ..; rm -fr ac_test_libtool; echo "$as_me:$LINENO: result: $ac_cv_libtool_non_pic" >&5
 echo "${ECHO_T}$ac_cv_libtool_non_pic" >&6
     if test x"$ac_cv_libtool_non_pic" = x"yes"; then
@@ -9801,6 +9866,19 @@ echo "${ECHO_T}$ac_cv_libtool_non_pic" >&6
     else
 	:
     fi
+
+# Check whether --enable-accel-detect or --disable-accel-detect was given.
+if test "${enable_accel_detect+set}" = set; then
+  enableval="$enable_accel_detect"
+
+fi;
+if test x"$enable_accel_detect" != x"no"; then
+
+cat >>confdefs.h <<\_ACEOF
+#define ACCEL_DETECT
+_ACEOF
+
+fi
 
 # Check whether --enable-mlib or --disable-mlib was given.
 if test "${enable_mlib+set}" = set; then
@@ -11388,21 +11466,6 @@ elif test x"$TENDRA" = x"yes"; then
         CFLAGS="$CFLAGS -DTenDRA_check"
 fi
 
-
-
-MPEG2DEC_CFLAGS="$CFLAGS"
-
-# Check whether --enable-gprof or --disable-gprof was given.
-if test "${enable_gprof+set}" = set; then
-  enableval="$enable_gprof"
-
-fi;
-if test x"$enable_gprof" = x"yes"; then
-    MPEG2DEC_CFLAGS=`echo "$MPEG2DEC_CFLAGS"|sed "s/-fomit-frame-pointer//g"`
-    MPEG2DEC_CFLAGS="$MPEG2DEC_CFLAGS -p"
-fi
-
-
 echo "$as_me:$LINENO: checking __attribute__ ((aligned ())) support" >&5
 echo $ECHO_N "checking __attribute__ ((aligned ())) support... $ECHO_C" >&6
 if test "${ac_cv_c_attribute_aligned+set}" = set; then
@@ -11997,7 +12060,6 @@ do
   "libvo/Makefile" ) CONFIG_FILES="$CONFIG_FILES libvo/Makefile" ;;
   "vc++/Makefile" ) CONFIG_FILES="$CONFIG_FILES vc++/Makefile" ;;
   "libmpeg2/libmpeg2.pc" ) CONFIG_FILES="$CONFIG_FILES libmpeg2/libmpeg2.pc" ;;
-  "src/libcpuaccel.pc" ) CONFIG_FILES="$CONFIG_FILES src/libcpuaccel.pc" ;;
   "depfiles" ) CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
   "include/config.h" ) CONFIG_HEADERS="$CONFIG_HEADERS include/config.h" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
@@ -12144,7 +12206,6 @@ s,@X_PRE_LIBS@,$X_PRE_LIBS,;t t
 s,@X_LIBS@,$X_LIBS,;t t
 s,@X_EXTRA_LIBS@,$X_EXTRA_LIBS,;t t
 s,@SDLCONFIG@,$SDLCONFIG,;t t
-s,@MPEG2DEC_CFLAGS@,$MPEG2DEC_CFLAGS,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
 CEOF

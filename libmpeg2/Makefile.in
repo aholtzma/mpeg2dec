@@ -76,7 +76,6 @@ MAINT = @MAINT@
 MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
 MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
-MPEG2DEC_CFLAGS = @MPEG2DEC_CFLAGS@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
@@ -129,19 +128,16 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-AM_CFLAGS = @CFLAGS@ @LIBMPEG2_CFLAGS@
+AM_CFLAGS = @LIBMPEG2_CFLAGS@
 
 lib_LTLIBRARIES = libmpeg2.la
-libmpeg2_la_SOURCES = alloc.c decode.c header.c cpu_state.c slice.c \
-		      motion_comp.c motion_comp_mlib.c motion_comp_mmx.c \
-		      motion_comp_altivec.c \
-		      idct.c idct_mlib.c idct_mmx.c idct_altivec.c
+libmpeg2_la_SOURCES = alloc.c cpu_accel.c header.c decode.c cpu_state.c \
+		      slice.c motion_comp_mmx.c idct_mmx.c \
+		      motion_comp_altivec.c idct_altivec.c \
+		      motion_comp_alpha.c idct_alpha.c \
+		      motion_comp_mlib.c idct_mlib.c \
+		      motion_comp.c idct.c
 
-# the source ordering seems to impact the speed.
-# On my setup the following ordering is about 2% faster.
-# I'll have to investigate...
-# libmpeg2_la_SOURCES = slice.c header.c stats.c idct.c motion_comp.c \
-# decode.c idct_mmx.c motion_comp_mmx.c
 libmpeg2_la_LIBADD = @LIBMPEG2_LIBS@
 libmpeg2_la_LDFLAGS = -no-undefined
 
@@ -156,20 +152,24 @@ CONFIG_CLEAN_FILES = libmpeg2.pc
 LTLIBRARIES = $(lib_LTLIBRARIES)
 
 libmpeg2_la_DEPENDENCIES =
-am_libmpeg2_la_OBJECTS = alloc.lo decode.lo header.lo cpu_state.lo \
-	slice.lo motion_comp.lo motion_comp_mlib.lo motion_comp_mmx.lo \
-	motion_comp_altivec.lo idct.lo idct_mlib.lo idct_mmx.lo \
-	idct_altivec.lo
+am_libmpeg2_la_OBJECTS = alloc.lo cpu_accel.lo header.lo decode.lo \
+	cpu_state.lo slice.lo motion_comp_mmx.lo idct_mmx.lo \
+	motion_comp_altivec.lo idct_altivec.lo motion_comp_alpha.lo \
+	idct_alpha.lo motion_comp_mlib.lo idct_mlib.lo motion_comp.lo \
+	idct.lo
 libmpeg2_la_OBJECTS = $(am_libmpeg2_la_OBJECTS)
 
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)/include
 depcomp = $(SHELL) $(top_srcdir)/autotools/depcomp
 am__depfiles_maybe = depfiles
-@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/alloc.Plo ./$(DEPDIR)/cpu_state.Plo \
-@AMDEP_TRUE@	./$(DEPDIR)/decode.Plo ./$(DEPDIR)/header.Plo \
-@AMDEP_TRUE@	./$(DEPDIR)/idct.Plo ./$(DEPDIR)/idct_altivec.Plo \
+@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/alloc.Plo ./$(DEPDIR)/cpu_accel.Plo \
+@AMDEP_TRUE@	./$(DEPDIR)/cpu_state.Plo ./$(DEPDIR)/decode.Plo \
+@AMDEP_TRUE@	./$(DEPDIR)/header.Plo ./$(DEPDIR)/idct.Plo \
+@AMDEP_TRUE@	./$(DEPDIR)/idct_alpha.Plo \
+@AMDEP_TRUE@	./$(DEPDIR)/idct_altivec.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/idct_mlib.Plo ./$(DEPDIR)/idct_mmx.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/motion_comp.Plo \
+@AMDEP_TRUE@	./$(DEPDIR)/motion_comp_alpha.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/motion_comp_altivec.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/motion_comp_mlib.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/motion_comp_mmx.Plo \
@@ -236,14 +236,17 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/alloc.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cpu_accel.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cpu_state.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/decode.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/header.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/idct.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/idct_alpha.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/idct_altivec.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/idct_mlib.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/idct_mmx.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/motion_comp.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/motion_comp_alpha.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/motion_comp_altivec.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/motion_comp_mlib.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/motion_comp_mmx.Plo@am__quote@

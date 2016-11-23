@@ -167,6 +167,7 @@ struct mpeg2dec_s {
     int bytes_since_pts;
 
     int first;
+    int alloc_index_user;
     int alloc_index;
     uint8_t first_decode_slice;
     uint8_t nb_decode_slices;
@@ -210,8 +211,11 @@ typedef struct {
 void * mpeg2_malloc (int size, int reason);
 void mpeg2_free (void * buf);
 
+/* cpu_accel.c */
+uint32_t mpeg2_detect_accel (void);
+
 /* cpu_state.c */
-void mpeg2_cpu_state_init (uint32_t mm_accel);
+void mpeg2_cpu_state_init (uint32_t accel);
 
 /* decode.c */
 int mpeg2_seek_sequence (mpeg2dec_t * mpeg2dec);
@@ -232,29 +236,42 @@ int mpeg2_header_end (mpeg2dec_t * mpeg2dec);
 void mpeg2_set_fbuf (mpeg2dec_t * mpeg2dec, int coding_type);
 
 /* idct.c */
-void mpeg2_idct_init (uint32_t mm_accel);
+void mpeg2_idct_init (uint32_t accel);
 
 /* idct_mlib.c */
-void mpeg2_idct_add_mlib (int16_t * block, uint8_t * dest, int stride);
+void mpeg2_idct_add_mlib (int last, int16_t * block,
+			  uint8_t * dest, int stride);
 void mpeg2_idct_copy_mlib_non_ieee (int16_t * block, uint8_t * dest,
 				    int stride);
-void mpeg2_idct_add_mlib_non_ieee (int16_t * block, uint8_t * dest,
-				   int stride);
+void mpeg2_idct_add_mlib_non_ieee (int last, int16_t * block,
+				   uint8_t * dest, int stride);
 
 /* idct_mmx.c */
 void mpeg2_idct_copy_mmxext (int16_t * block, uint8_t * dest, int stride);
-void mpeg2_idct_add_mmxext (int16_t * block, uint8_t * dest, int stride);
+void mpeg2_idct_add_mmxext (int last, int16_t * block,
+			    uint8_t * dest, int stride);
 void mpeg2_idct_copy_mmx (int16_t * block, uint8_t * dest, int stride);
-void mpeg2_idct_add_mmx (int16_t * block, uint8_t * dest, int stride);
+void mpeg2_idct_add_mmx (int last, int16_t * block,
+			 uint8_t * dest, int stride);
 void mpeg2_idct_mmx_init (void);
 
 /* idct_altivec.c */
 void mpeg2_idct_copy_altivec (int16_t * block, uint8_t * dest, int stride);
-void mpeg2_idct_add_altivec (int16_t * block, uint8_t * dest, int stride);
+void mpeg2_idct_add_altivec (int last, int16_t * block,
+			     uint8_t * dest, int stride);
 void mpeg2_idct_altivec_init (void);
 
+/* idct_alpha.c */
+void mpeg2_idct_copy_mvi (int16_t * block, uint8_t * dest, int stride);
+void mpeg2_idct_add_mvi (int last, int16_t * block,
+			 uint8_t * dest, int stride);
+void mpeg2_idct_copy_alpha (int16_t * block, uint8_t * dest, int stride);
+void mpeg2_idct_add_alpha (int last, int16_t * block,
+			   uint8_t * dest, int stride);
+void mpeg2_idct_alpha_init(int no_mvi);
+
 /* motion_comp.c */
-void mpeg2_mc_init (uint32_t mm_accel);
+void mpeg2_mc_init (uint32_t accel);
 
 typedef void mpeg2_mc_fct (uint8_t *, const uint8_t *, int, int);
 
@@ -275,4 +292,5 @@ extern mpeg2_mc_t mpeg2_mc_mmx;
 extern mpeg2_mc_t mpeg2_mc_mmxext;
 extern mpeg2_mc_t mpeg2_mc_3dnow;
 extern mpeg2_mc_t mpeg2_mc_altivec;
+extern mpeg2_mc_t mpeg2_mc_alpha;
 extern mpeg2_mc_t mpeg2_mc_mlib;

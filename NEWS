@@ -1,3 +1,19 @@
+mpeg2dec-0.3.1 Fri Dec 13 22:15:36 PST 2002
+
+This is mainly a maintainance release. On the API side, libmpeg2 now
+includes some CPU detection code - so it will by default automatically
+use whatever features are available on the CPU it runs on. There is a
+function to override this, mainly for testing purposes.
+
+There has been a few speed improvements too - there is now some alpha
+specific code that makes the library more than twice faster on these
+machines, and the C IDCT has also been improved which translates to
+about 6% speed improvement for people who use this code.
+
+Finally, a few bugs have been fixed, most notably some memory leaks
+and sparc/HPPA/IA64 build issues.
+
+
 mpeg2dec-0.3.0 Wed Nov 27 23:23:23 PST 2002
 
 The main goal of this release is to preview the new libmpeg2 API. The

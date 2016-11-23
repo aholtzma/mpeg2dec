@@ -44,7 +44,6 @@ static void save_ppm (int width, int height, uint8_t * buf, int num)
 
 static void sample2 (FILE * file)
 {
-    uint32_t accel;
 #define BUFFER_SIZE 4096
     uint8_t buffer[BUFFER_SIZE];
     mpeg2dec_t * mpeg2dec;
@@ -53,8 +52,7 @@ static void sample2 (FILE * file)
     int size;
     int framenum = 0;
 
-    accel = 0;
-    mpeg2dec = mpeg2_init (accel);
+    mpeg2dec = mpeg2_init ();
     if (mpeg2dec == NULL)
 	exit (1);
     info = mpeg2_info (mpeg2dec);
