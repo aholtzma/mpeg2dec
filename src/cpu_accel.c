@@ -28,7 +28,7 @@
 #include "mm_accel.h"
 
 #ifdef ARCH_X86
-static uint32_t arch_accel (void)
+static inline uint32_t arch_accel (void)
 {
     uint32_t eax, ebx, ecx, edx;
     int AMD;
@@ -36,41 +36,41 @@ static uint32_t arch_accel (void)
 
 #ifndef PIC
 #define cpuid(op,eax,ebx,ecx,edx)	\
-    asm ("cpuid"			\
-	 : "=a" (eax),			\
-	   "=b" (ebx),			\
-	   "=c" (ecx),			\
-	   "=d" (edx)			\
-	 : "a" (op)			\
-	 : "cc")
+    __asm__ ("cpuid"			\
+	     : "=a" (eax),		\
+	       "=b" (ebx),		\
+	       "=c" (ecx),		\
+	       "=d" (edx)		\
+	     : "a" (op)			\
+	     : "cc")
 #else	/* PIC version : save ebx */
 #define cpuid(op,eax,ebx,ecx,edx)	\
-    asm ("pushl %%ebx\n\t"		\
-	 "cpuid\n\t"			\
-	 "movl %%ebx,%1\n\t"		\
-	 "popl %%ebx"			\
-	 : "=a" (eax),			\
-	   "=r" (ebx),			\
-	   "=c" (ecx),			\
-	   "=d" (edx)			\
-	 : "a" (op)			\
-	 : "cc")
+    __asm__ ("push %%ebx\n\t"		\
+	     "cpuid\n\t"		\
+	     "movl %%ebx,%1\n\t"	\
+	     "pop %%ebx"		\
+	     : "=a" (eax),		\
+	       "=r" (ebx),		\
+	       "=c" (ecx),		\
+	       "=d" (edx)		\
+	     : "a" (op)			\
+	     : "cc")
 #endif
 
-    asm ("pushfl\n\t"
-	 "pushfl\n\t"
-	 "popl %0\n\t"
-	 "movl %0,%1\n\t"
-	 "xorl $0x200000,%0\n\t"
-	 "pushl %0\n\t"
-	 "popfl\n\t"
-	 "pushfl\n\t"
-	 "popl %0\n\t"
-	 "popfl"
-         : "=r" (eax),
-	   "=r" (ebx)
-	 :
-	 : "cc");
+    __asm__ ("pushf\n\t"
+	     "pushf\n\t"
+	     "pop %0\n\t"
+	     "movl %0,%1\n\t"
+	     "xorl $0x200000,%0\n\t"
+	     "push %0\n\t"
+	     "popf\n\t"
+	     "pushf\n\t"
+	     "pop %0\n\t"
+	     "popf"
+	     : "=r" (eax),
+	       "=r" (ebx)
+	     :
+	     : "cc");
 
     if (eax == ebx)		/* no cpuid */
 	return 0;
@@ -123,7 +123,7 @@ static RETSIGTYPE sigill_handler (int sig)
     siglongjmp (jmpbuf, 1);
 }
 
-static uint32_t arch_accel (void)
+static inline uint32_t arch_accel (void)
 {
     signal (SIGILL, sigill_handler);
     if (sigsetjmp (jmpbuf, 1)) {
@@ -147,7 +147,7 @@ uint32_t mm_accel (void)
 {
 #if defined (ARCH_X86) || defined (ARCH_PPC)
     static int got_accel = 0;
-    static uint32_t accel;
+    static uint32_t accel = 0;	/* initialized to work around a mingw32 bug */
 
     if (!got_accel) {
 	got_accel = 1;

@@ -29,10 +29,11 @@
 
 #include <inttypes.h>
 
+#include "mpeg2.h"
 #include "mpeg2_internal.h"
 #include "attributes.h"
 
-static int16_t constants[5][8] ATTR_ALIGN(16) = {
+static const int16_t constants[5][8] ATTR_ALIGN(16) = {
     {23170, 13573, 6518, 21895, -23170, -21895, 32, 31},
     {16384, 22725, 21407, 19266, 16384, 19266, 21407, 22725},
     {22725, 31521, 29692, 26722, 22725, 26722, 29692, 31521},
@@ -243,6 +244,23 @@ void mpeg2_idct_copy_altivec (int16_t * block, uint8_t * dest, int stride)
 	"#	lwz		%r0,  132(%r1)		\n"
 	"#	mtlr		%r0			\n"
 	"#	la		%r1,  128(%r1)		\n"
+
+	"	vxor		%v1,  %v1,  %v1		\n"
+	"	addi		%r9,  %r3,  16		\n"
+	"	stvx		%v1,  0,    %r3		\n"
+	"	stvx		%v1,  0,    %r9		\n"
+	"	addi		%r11, %r3,  32		\n"
+	"	stvx		%v1,  0,    %r11	\n"
+	"	addi		%r9,  %r3,  48		\n"
+	"	stvx		%v1,  0,    %r9		\n"
+	"	addi		%r11, %r3,  -64		\n"
+	"	stvx		%v1,  0,    %r11	\n"
+	"	addi		%r9,  %r3,  -48		\n"
+	"	stvx		%v1,  0,    %r9		\n"
+	"	addi		%r11, %r3,  -32		\n"
+	"	stvx		%v1,  0,    %r11	\n"
+	"	addi		%r3,  %r3,  -16		\n"
+	"	stvx		%v1,  0,    %r3		\n"
 	 );
 }
 
@@ -463,6 +481,22 @@ void mpeg2_idct_add_altivec (int16_t * block, uint8_t * dest, int stride)
 	"#	lwz		%r0,  196(%r1)		\n"
 	"#	mtlr		%r0			\n"
 	"#	la		%r1,  192(%r1)		\n"
+
+	"	addi		%r9,  %r3,  16		\n"
+	"	stvx		%v1,  0,    %r3		\n"
+	"	stvx		%v1,  0,    %r9		\n"
+	"	addi		%r11, %r3,  32		\n"
+	"	stvx		%v1,  0,    %r11	\n"
+	"	addi		%r9,  %r3,  48		\n"
+	"	stvx		%v1,  0,    %r9		\n"
+	"	addi		%r11, %r3,  -64		\n"
+	"	stvx		%v1,  0,    %r11	\n"
+	"	addi		%r9,  %r3,  -48		\n"
+	"	stvx		%v1,  0,    %r9		\n"
+	"	addi		%r11, %r3,  -32		\n"
+	"	stvx		%v1,  0,    %r11	\n"
+	"	addi		%r3,  %r3,  -16		\n"
+	"	stvx		%v1,  0,    %r3		\n"
 	 );
 }
 
@@ -505,7 +539,7 @@ void mpeg2_idct_altivec_init (void)
     t5 = vec_adds (vx0, vx4);				\
     t0 = vec_subs (vx0, vx4);				\
     t2 = vec_mradds (a0, vx6, vx2);			\
-    t4 = vec_mradds (a0, vx2, vec_subs (zero,vx6));	\
+    t4 = vec_mradds (a0, vx2, vec_subs (zero, vx6));	\
     t6 = vec_adds (t8, t3);				\
     t3 = vec_subs (t8, t3);				\
     t8 = vec_subs (t1, t7);				\
@@ -597,7 +631,7 @@ void mpeg2_idct_altivec_init (void)
     vx6 = vec_sra (vy6, shift);						\
     vx7 = vec_sra (vy7, shift);
 
-static vector_s16_t constants[5] = {
+static const vector_s16_t constants[5] = {
     (vector_s16_t)(23170, 13573, 6518, 21895, -23170, -21895, 32, 31),
     (vector_s16_t)(16384, 22725, 21407, 19266, 16384, 19266, 21407, 22725),
     (vector_s16_t)(22725, 31521, 29692, 26722, 22725, 26722, 29692, 31521),
@@ -605,8 +639,8 @@ static vector_s16_t constants[5] = {
     (vector_s16_t)(19266, 26722, 25172, 22654, 19266, 22654, 25172, 26722)
 };
 
-void mpeg2_idct_copy_altivec (vector_s16_t * block, unsigned char * dest,
-			      int stride)
+void mpeg2_idct_copy_altivec (vector_s16_t * const block, unsigned char * dest,
+			      const int stride)
 {
     vector_u8_t tmp;
 
@@ -625,10 +659,12 @@ void mpeg2_idct_copy_altivec (vector_s16_t * block, unsigned char * dest,
     COPY (dest, vx5)	dest += stride;
     COPY (dest, vx6)	dest += stride;
     COPY (dest, vx7)
+
+    memset (block, 0, 64 * sizeof (signed short));
 }
 
-void mpeg2_idct_add_altivec (vector_s16_t * block, unsigned char * dest,
-			     int stride)
+void mpeg2_idct_add_altivec (vector_s16_t * const block, unsigned char * dest,
+			     const int stride)
 {
     vector_u8_t tmp;
     vector_s16_t tmp2, tmp3;
@@ -661,6 +697,8 @@ void mpeg2_idct_add_altivec (vector_s16_t * block, unsigned char * dest,
     ADD (dest, vx5, perm1)	dest += stride;
     ADD (dest, vx6, perm0)	dest += stride;
     ADD (dest, vx7, perm1)
+
+    memset (block, 0, 64 * sizeof (signed short));
 }
 
 #endif	/* __ALTIVEC__ */

@@ -85,7 +85,7 @@ LIB32=link.exe -lib
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=..\libmpeg2\cpu_state.c
+SOURCE=..\libmpeg2\alloc.c
 # End Source File
 # Begin Source File
 
@@ -101,31 +101,7 @@ SOURCE=..\libmpeg2\idct.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\libmpeg2\idct_altivec.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\libmpeg2\idct_mlib.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\libmpeg2\idct_mmx.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\libmpeg2\motion_comp.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\libmpeg2\motion_comp_altivec.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\libmpeg2\motion_comp_mlib.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\libmpeg2\motion_comp_mmx.c
 # End Source File
 # Begin Source File
 
@@ -133,7 +109,15 @@ SOURCE=..\libmpeg2\slice.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\libmpeg2\stats.c
+SOURCE=.\cpu_state.obj
+# End Source File
+# Begin Source File
+
+SOURCE=.\idct_mmx.obj
+# End Source File
+# Begin Source File
+
+SOURCE=.\motion_comp_mmx.obj
 # End Source File
 # End Group
 # Begin Group "Header Files"

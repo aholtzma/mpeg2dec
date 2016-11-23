@@ -1,5 +1,5 @@
 /*
- * video_out_internal.h
+ * gettimeofday.h
  * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
@@ -21,24 +21,20 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-extern uint32_t vo_mm_accel;
+#if defined(HAVE_SYS_TIME_H) && defined(HAVE_GETTIMEOFDAY)
+#include <sys/time.h>
+#elif defined(HAVE_SYS_TIMEB_H) && defined(HAVE_FTIME)
 
-int libvo_common_alloc_frames (vo_instance_t * instance, int width, int height,
-			       int frame_size,
-			       void (* copy) (vo_frame_t *, uint8_t **),
-			       void (* field) (vo_frame_t *, int),
-			       void (* draw) (vo_frame_t *));
-void libvo_common_free_frames (vo_instance_t * instance);
-vo_frame_t * libvo_common_get_frame (vo_instance_t * instance, int prediction);
+#define HAVE_GETTIMEOFDAY 1
+#define CUSTOM_GETTIMEOFDAY 1
 
-#define MODE_RGB  0x1
-#define MODE_BGR  0x2
+struct timeval {
+    long tv_sec;
+    long tv_usec;
+};
 
-extern void (* yuv2rgb) (uint8_t * image, uint8_t * py,
-                         uint8_t * pu, uint8_t * pv, int h_size, int v_size,
-                         int rgb_stride, int y_stride, int uv_stride);
+void gettimeofday (struct timeval * tp, void * dummy);
 
-void yuv2rgb_init (int bpp, int mode);
-int yuv2rgb_init_mmxext (int bpp, int mode);
-int yuv2rgb_init_mmx (int bpp, int mode);
-int yuv2rgb_init_mlib (int bpp, int mode);
+#else
+#undef HAVE_GETTIMEOFDAY
+#endif

@@ -89,6 +89,11 @@ libmpeg2 is being used by various other projects, including:
       *	movietime (http://movietime.sourceforge.net/) - still quite
 	young, but it looks very promising !
 
+      *	mpeg2decX (http://homepage1.nifty.com/~toku/software_en.html) -
+	a graphical interface for mpeg2dec for macintosh osX.
+
+      *	drip (http://drip.sourceforge.net/) - a DVD to DIVX transcoder.
+
       *	OMS (http://www.linuxvideo.org/oms/)
 
       *	XMPS (http://xmps.sourceforge.net/)

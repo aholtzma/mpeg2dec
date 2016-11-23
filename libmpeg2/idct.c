@@ -41,10 +41,10 @@
 
 #include "config.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
 
+#include "mpeg2.h"
 #include "mpeg2_internal.h"
 #include "mm_accel.h"
 
@@ -72,7 +72,7 @@ static uint8_t clip_lut[1024];
  * c[1..7] = 128*sqrt (2)
  */
 
-static void inline idct_row (int16_t * block)
+static void inline idct_row (int16_t * const block)
 {
     int x0, x1, x2, x3, x4, x5, x6, x7, x8;
 
@@ -100,7 +100,7 @@ static void inline idct_row (int16_t * block)
     x8 = W3 * (x6 + x7);
     x6 = x8 - (W3 - W5) * x6;
     x7 = x8 - (W3 + W5) * x7;
- 
+
     /* second stage */
     x8 = x0 + x1;
     x0 -= x1;
@@ -111,7 +111,7 @@ static void inline idct_row (int16_t * block)
     x4 -= x6;
     x6 = x5 + x7;
     x5 -= x7;
- 
+
     /* third stage */
     x7 = x8 + x3;
     x8 -= x3;
@@ -119,7 +119,7 @@ static void inline idct_row (int16_t * block)
     x0 -= x2;
     x2 = (181 * (x4 + x5) + 128) >> 8;
     x4 = (181 * (x4 - x5) + 128) >> 8;
- 
+
     /* fourth stage */
     block[0] = (x7 + x1) >> 8;
     block[1] = (x3 + x2) >> 8;
@@ -141,7 +141,7 @@ static void inline idct_row (int16_t * block)
  * c[1..7] = (1/1024)*sqrt (2)
  */
 
-static void inline idct_col (int16_t *block)
+static void inline idct_col (int16_t * const block)
 {
     int x0, x1, x2, x3, x4, x5, x6, x7, x8;
 
@@ -171,7 +171,7 @@ static void inline idct_col (int16_t *block)
     x8 = W3 * (x6 + x7) + 4;
     x6 = (x8 - (W3 - W5) * x6) >> 3;
     x7 = (x8 - (W3 + W5) * x7) >> 3;
- 
+
     /* second stage */
     x8 = x0 + x1;
     x0 -= x1;
@@ -182,7 +182,7 @@ static void inline idct_col (int16_t *block)
     x4 -= x6;
     x6 = x5 + x7;
     x5 -= x7;
- 
+
     /* third stage */
     x7 = x8 + x3;
     x8 -= x3;
@@ -190,7 +190,7 @@ static void inline idct_col (int16_t *block)
     x0 -= x2;
     x2 = (181 * (x4 + x5) + 128) >> 8;
     x4 = (181 * (x4 - x5) + 128) >> 8;
- 
+
     /* fourth stage */
     block[8*0] = (x7 + x1) >> 14;
     block[8*1] = (x3 + x2) >> 14;
@@ -202,7 +202,8 @@ static void inline idct_col (int16_t *block)
     block[8*7] = (x7 - x1) >> 14;
 }
 
-static void mpeg2_idct_copy_c (int16_t * block, uint8_t * dest, int stride)
+static void mpeg2_idct_copy_c (int16_t * block, uint8_t * dest,
+			       const int stride)
 {
     int i;
 
@@ -223,12 +224,16 @@ static void mpeg2_idct_copy_c (int16_t * block, uint8_t * dest, int stride)
 	dest[6] = CLIP (block[6]);
 	dest[7] = CLIP (block[7]);
 
+	block[0] = 0;	block[1] = 0;	block[2] = 0;	block[3] = 0;
+	block[4] = 0;	block[5] = 0;	block[6] = 0;	block[7] = 0;
+
 	dest += stride;
 	block += 8;
     } while (--i);
 }
 
-static void mpeg2_idct_add_c (int16_t * block, uint8_t * dest, int stride)
+static void mpeg2_idct_add_c (int16_t * block, uint8_t * dest,
+			      const int stride)
 {
     int i;
 
@@ -249,6 +254,9 @@ static void mpeg2_idct_add_c (int16_t * block, uint8_t * dest, int stride)
 	dest[6] = CLIP (block[6] + dest[6]);
 	dest[7] = CLIP (block[7] + dest[7]);
 
+	block[0] = 0;	block[1] = 0;	block[2] = 0;	block[3] = 0;
+	block[4] = 0;	block[5] = 0;	block[6] = 0;	block[7] = 0;
+
 	dest += stride;
 	block += 8;
     } while (--i);
@@ -258,12 +266,10 @@ void mpeg2_idct_init (uint32_t mm_accel)
 {
 #ifdef ARCH_X86
     if (mm_accel & MM_ACCEL_X86_MMXEXT) {
-	fprintf (stderr, "Using MMXEXT for IDCT transform\n");
 	mpeg2_idct_copy = mpeg2_idct_copy_mmxext;
 	mpeg2_idct_add = mpeg2_idct_add_mmxext;
 	mpeg2_idct_mmx_init ();
     } else if (mm_accel & MM_ACCEL_X86_MMX) {
-	fprintf (stderr, "Using MMX for IDCT transform\n");
 	mpeg2_idct_copy = mpeg2_idct_copy_mmx;
 	mpeg2_idct_add = mpeg2_idct_add_mmx;
 	mpeg2_idct_mmx_init ();
@@ -271,7 +277,6 @@ void mpeg2_idct_init (uint32_t mm_accel)
 #endif
 #ifdef ARCH_PPC
     if (mm_accel & MM_ACCEL_PPC_ALTIVEC) {
-	fprintf (stderr, "Using altivec for IDCT transform\n");
 	mpeg2_idct_copy = mpeg2_idct_copy_altivec;
 	mpeg2_idct_add = mpeg2_idct_add_altivec;
 	mpeg2_idct_altivec_init ();
@@ -279,24 +284,14 @@ void mpeg2_idct_init (uint32_t mm_accel)
 #endif
 #ifdef LIBMPEG2_MLIB
     if (mm_accel & MM_ACCEL_MLIB) {
-	char * env_var;
-
-	env_var = getenv ("MLIB_NON_IEEE");
-
-	if (env_var == NULL) {
-	    fprintf (stderr, "Using mlib for IDCT transform\n");
-	    mpeg2_idct_add = mpeg2_idct_add_mlib;
-	} else {
-	    fprintf (stderr, "Using non-IEEE mlib for IDCT transform\n");
-	    mpeg2_idct_add = mpeg2_idct_add_mlib_non_ieee;
-	}
 	mpeg2_idct_copy = mpeg2_idct_copy_mlib_non_ieee;
+	mpeg2_idct_add = (getenv ("MLIB_NON_IEEE") ?
+			  mpeg2_idct_add_mlib_non_ieee : mpeg2_idct_add_mlib);
     } else
 #endif
     {
 	int i;
 
-	fprintf (stderr, "No accelerated IDCT transform found\n");
 	mpeg2_idct_copy = mpeg2_idct_copy_c;
 	mpeg2_idct_add = mpeg2_idct_add_c;
 	for (i = -384; i < 640; i++)

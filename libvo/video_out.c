@@ -27,24 +27,14 @@
 #include <inttypes.h>
 
 #include "video_out.h"
-#include "video_out_internal.h"
-
-#ifdef HAVE_MEMALIGN
-/* some systems have memalign() but no declaration for it */
-void * memalign (size_t align, size_t size);
-#else
-/* assume malloc alignment is sufficient */
-#define memalign(align,size) malloc (size)
-#endif
-
-uint32_t vo_mm_accel = 0;
 
 /* Externally visible list of all vo drivers */
 
 extern vo_open_t vo_xv_open;
 extern vo_open_t vo_x11_open;
+extern vo_open_t vo_dxrgb_open;
+extern vo_open_t vo_dx_open;
 extern vo_open_t vo_sdl_open;
-extern vo_open_t vo_mga_open;
 extern vo_open_t vo_null_open;
 extern vo_open_t vo_nullslice_open;
 extern vo_open_t vo_nullrgb16_open;
@@ -53,11 +43,6 @@ extern vo_open_t vo_pgm_open;
 extern vo_open_t vo_pgmpipe_open;
 extern vo_open_t vo_md5_open;
 
-void vo_accel (uint32_t accel)
-{
-    vo_mm_accel = accel;
-}
-
 static vo_driver_t video_out_drivers[] = {
 #ifdef LIBVO_XV
     {"xv", vo_xv_open},
@@ -65,8 +50,9 @@ static vo_driver_t video_out_drivers[] = {
 #ifdef LIBVO_X11
     {"x11", vo_x11_open},
 #endif
-#ifdef LIBVO_MGA
-    {"mga", vo_mga_open},
+#ifdef LIBVO_DX
+    {"dxrgb", vo_dxrgb_open},
+    {"dx", vo_dx_open},
 #endif
 #ifdef LIBVO_SDL
     {"sdl", vo_sdl_open},
@@ -84,65 +70,4 @@ static vo_driver_t video_out_drivers[] = {
 vo_driver_t * vo_drivers (void)
 {
     return video_out_drivers;
-}
-
-typedef struct common_instance_s {
-    vo_instance_t vo;
-    int prediction_index;
-    vo_frame_t * frame_ptr[3];
-} common_instance_t;
-
-int libvo_common_alloc_frames (vo_instance_t * _instance,
-			       int width, int height, int frame_size,
-			       void (* copy) (vo_frame_t *, uint8_t **),
-			       void (* field) (vo_frame_t *, int),
-			       void (* draw) (vo_frame_t *))
-{
-    common_instance_t * instance;
-    int size;
-    uint8_t * alloc;
-    int i;
-
-    instance = (common_instance_t *) _instance;
-    instance->prediction_index = 1;
-    size = width * height / 4;
-    alloc = memalign (16, 18 * size);
-    if (alloc == NULL)
-	return 1;
-
-    for (i = 0; i < 3; i++) {
-	instance->frame_ptr[i] =
-	    (vo_frame_t *) (((char *) instance) + sizeof (common_instance_t) +
-			    i * frame_size);
-	instance->frame_ptr[i]->base[0] = alloc;
-	instance->frame_ptr[i]->base[1] = alloc + 4 * size;
-	instance->frame_ptr[i]->base[2] = alloc + 5 * size;
-	instance->frame_ptr[i]->copy = copy;
-	instance->frame_ptr[i]->field = field;
-	instance->frame_ptr[i]->draw = draw;
-	instance->frame_ptr[i]->instance = (vo_instance_t *) instance;
-	alloc += 6 * size;
-    }
-
-    return 0;
-}
-
-void libvo_common_free_frames (vo_instance_t * _instance)
-{
-    common_instance_t * instance;
-
-    instance = (common_instance_t *) _instance;
-    free (instance->frame_ptr[0]->base[0]);
-}
-
-vo_frame_t * libvo_common_get_frame (vo_instance_t * _instance, int flags)
-{
-    common_instance_t * instance;
-
-    instance = (common_instance_t *)_instance;
-    if (flags & VO_PREDICTION_FLAG) {
-	instance->prediction_index ^= 1;
-	return instance->frame_ptr[instance->prediction_index];
-    } else
-	return instance->frame_ptr[2];
 }

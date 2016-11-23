@@ -31,47 +31,51 @@
 #include <mlib_video.h>
 #include <inttypes.h>
 
-#include "video_out.h"
-#include "video_out_internal.h"
+#include "convert.h"
+#include "convert_internal.h"
 
-static void mlib_YUV2ARGB420_32 (uint8_t * image, uint8_t * py,
-				 uint8_t * pu, uint8_t * pv,
-				 int h_size, int v_size,
-				 int rgb_stride, int y_stride, int uv_stride)
+static void mlib_YUV2ARGB420_32 (void * _id, uint8_t * const * src,
+				 unsigned int v_offset)
 {
-    mlib_VideoColorYUV2ARGB420 (image, py, pu, pv, h_size,
-				v_size, rgb_stride, y_stride, uv_stride);
+    convert_rgb_t * id = (convert_rgb_t *) _id;
+
+    mlib_VideoColorYUV2ARGB420 (id->rgb_ptr + id->rgb_stride * v_offset,
+				src[0], src[1], src[2],
+				id->width, 16, id->rgb_stride,
+				id->uv_stride << 1, id->uv_stride);
 }
 
-static void mlib_YUV2ABGR420_32 (uint8_t * image, uint8_t * py,
-				 uint8_t * pu, uint8_t * pv,
-				 int h_size, int v_size,
-				 int rgb_stride, int y_stride, int uv_stride)
+static void mlib_YUV2ABGR420_32 (void * _id, uint8_t * const * src,
+				 unsigned int v_offset)
 {
-    mlib_VideoColorYUV2ABGR420 (image, py, pu, pv, h_size,
-				v_size, rgb_stride, y_stride, uv_stride);
+    convert_rgb_t * id = (convert_rgb_t *) _id;
+
+    mlib_VideoColorYUV2ABGR420 (id->rgb_ptr + id->rgb_stride * v_offset,
+				src[0], src[1], src[2],
+				id->width, 16, id->rgb_stride,
+				id->uv_stride << 1, id->uv_stride);
 }
 
-static void mlib_YUV2RGB420_24 (uint8_t * image, uint8_t * py,
-				uint8_t * pu, uint8_t * pv,
-				int h_size, int v_size,
-				int rgb_stride, int y_stride, int uv_stride)
+static void mlib_YUV2RGB420_24 (void * _id, uint8_t * const * src,
+				unsigned int v_offset)
 {
-    mlib_VideoColorYUV2RGB420 (image, py, pu, pv, h_size,
-			       v_size, rgb_stride, y_stride, uv_stride);
+    convert_rgb_t * id = (convert_rgb_t *) _id;
+
+    mlib_VideoColorYUV2RGB420 (id->rgb_ptr + id->rgb_stride * v_offset,
+			       src[0], src[1], src[2],
+			       id->width, 16, id->rgb_stride,
+			       id->uv_stride << 1, id->uv_stride);
 }
 
-int yuv2rgb_init_mlib (int bpp, int mode)
+yuv2rgb_copy * yuv2rgb_init_mlib (int order, int bpp)
 {
-    if ((bpp == 24) && (mode == MODE_RGB)) {
-	yuv2rgb = mlib_YUV2RGB420_24;
-	return 0;
-    } else if (bpp == 32) {
-	yuv2rgb =
-	    (mode == MODE_RGB) ? mlib_YUV2ARGB420_32 : mlib_YUV2ABGR420_32;
-	return 0;
-    } else
-	return 1;	/* Fallback to C */
+    if ((order == CONVERT_RGB) && (bpp == 24))
+	return mlib_YUV2RGB420_24;
+    else if ((order == CONVERT_RGB) && (bpp == 32))
+	return mlib_YUV2ARGB420_32;
+    else if ((order == CONVERT_BGR) && (bpp == 32))
+	return mlib_YUV2ABGR420_32;
+    return NULL;	/* Fallback to C */
 }
 
 #endif

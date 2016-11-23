@@ -1,3 +1,3 @@
-SUBDIRS = autotools include doc libmpeg2 libvo src vc++ test
+SUBDIRS = autotools include libmpeg2 libvo doc src vc++ test
 
 EXTRA_DIST = bootstrap

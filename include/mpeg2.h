@@ -24,56 +24,113 @@
 #ifndef MPEG2_H
 #define MPEG2_H
 
-/* Structure for the mpeg2dec decoder */
+#define SEQ_FLAG_MPEG2 1
+#define SEQ_FLAG_CONSTRAINED_PARAMETERS 2
+#define SEQ_FLAG_PROGRESSIVE_SEQUENCE 4
+#define SEQ_FLAG_LOW_DELAY 8
+#define SEQ_FLAG_COLOUR_DESCRIPTION 16
 
-typedef struct mpeg2dec_s {
-    vo_instance_t * output;
+#define SEQ_MASK_VIDEO_FORMAT 0xe0
+#define SEQ_VIDEO_FORMAT_COMPONENT 0
+#define SEQ_VIDEO_FORMAT_PAL 0x20
+#define SEQ_VIDEO_FORMAT_NTSC 0x40
+#define SEQ_VIDEO_FORMAT_SECAM 0x60
+#define SEQ_VIDEO_FORMAT_MAC 0x80
+#define SEQ_VIDEO_FORMAT_UNSPECIFIED 0xa0
 
-    /* this is where we keep the state of the decoder */
-    struct picture_s * picture;
-    
-    uint32_t shift;
-    int is_display_initialized;
-    int is_sequence_needed;
-    int drop_flag;
-    int drop_frame;
-    int in_slice;
+typedef struct {
+    unsigned int width, height;
+    unsigned int chroma_width, chroma_height;
+    unsigned int byte_rate;
+    unsigned int vbv_buffer_size;
+    uint32_t flags;
 
-    /* the maximum chunk size is determined by vbv_buffer_size */
-    /* which is 224K for MP@ML streams. */
-    /* (we make no pretenses of decoding anything more than that) */
-    /* allocated in init - gcc has problems allocating such big structures */
-    uint8_t * chunk_buffer;
-    /* pointer to current position in chunk_buffer */
-    uint8_t * chunk_ptr;
-    /* last start code ? */
-    uint8_t code;
+    unsigned int picture_width, picture_height;
+    unsigned int display_width, display_height;
+    unsigned int pixel_width, pixel_height;
+    unsigned int frame_period;
 
-    /* PTS */
-    uint32_t pts, pts_current, pts_previous;
-    int num_pts;
-    int bytes_since_pts;
+    uint8_t profile_level_id;
+    uint8_t colour_primaries;
+    uint8_t transfer_characteristics;
+    uint8_t matrix_coefficients;
+} sequence_t;
 
-    /* ONLY for 0.2.x release - will not stay there later */
-    int frame_rate_code;
-} mpeg2dec_t ;
+#define PIC_MASK_CODING_TYPE 7
+#define PIC_FLAG_CODING_TYPE_I 1
+#define PIC_FLAG_CODING_TYPE_P 2
+#define PIC_FLAG_CODING_TYPE_B 3
+#define PIC_FLAG_CODING_TYPE_D 4
 
+#define PIC_FLAG_TOP_FIELD_FIRST 8
+#define PIC_FLAG_PROGRESSIVE_FRAME 16
+#define PIC_FLAG_COMPOSITE_DISPLAY 32
+#define PIC_FLAG_SKIP 64
+#define PIC_FLAG_PTS 128
+#define PIC_MASK_COMPOSITE_DISPLAY 0xfffff000
 
+typedef struct {
+    unsigned int temporal_reference;
+    unsigned int nb_fields;
+    uint32_t pts;
+    uint32_t flags;
+    struct {
+	int x, y;
+    } display_offset[3];
+} picture_t;
 
+typedef struct {
+    uint8_t * buf[3];
+    void * id;
+} fbuf_t;
 
+typedef struct {
+    const sequence_t * sequence;
+    const picture_t * current_picture;
+    const picture_t * current_picture_2nd;
+    const fbuf_t * current_fbuf;
+    const picture_t * display_picture;
+    const picture_t * display_picture_2nd;
+    const fbuf_t * display_fbuf;
+    const fbuf_t * discard_fbuf;
+    const uint8_t * user_data;
+    int user_data_len;
+} mpeg2_info_t;
 
-/* initialize mpegdec with a opaque user pointer */
-void mpeg2_init (mpeg2dec_t * mpeg2dec, uint32_t mm_accel,
-		 vo_instance_t * output);
+typedef struct mpeg2dec_s mpeg2dec_t;
+typedef struct decoder_s decoder_t;
 
-/* destroy everything which was allocated, shutdown the output */
+#define STATE_SEQUENCE 1
+#define STATE_SEQUENCE_REPEATED 2
+#define STATE_GOP 3
+#define STATE_PICTURE 4
+#define STATE_SLICE_1ST 5
+#define STATE_PICTURE_2ND 6
+#define STATE_SLICE 7
+#define STATE_END 8
+#define STATE_INVALID 9
+
+struct convert_init_s;
+void mpeg2_convert (mpeg2dec_t * mpeg2dec,
+		    void (* convert) (int, int, void *,
+				      struct convert_init_s *), void * arg);
+void mpeg2_set_buf (mpeg2dec_t * mpeg2dec, uint8_t * buf[3], void * id);
+void mpeg2_custom_fbuf (mpeg2dec_t * mpeg2dec, int custom_fbuf);
+void mpeg2_init_fbuf (decoder_t * decoder, uint8_t * current_fbuf[3],
+		      uint8_t * forward_fbuf[3], uint8_t * backward_fbuf[3]);
+
+void mpeg2_slice (decoder_t * decoder, int code, const uint8_t * buffer);
+
+mpeg2dec_t * mpeg2_init (uint32_t mm_accel);
+const mpeg2_info_t * mpeg2_info (mpeg2dec_t * mpeg2dec);
 void mpeg2_close (mpeg2dec_t * mpeg2dec);
 
-int mpeg2_decode_data (mpeg2dec_t * mpeg2dec,
-		       uint8_t * data_start, uint8_t * data_end);
+void mpeg2_buffer (mpeg2dec_t * mpeg2dec, uint8_t * start, uint8_t * end);
+int mpeg2_parse (mpeg2dec_t * mpeg2dec);
+
+void mpeg2_skip (mpeg2dec_t * mpeg2dec, int skip);
+void mpeg2_slice_region (mpeg2dec_t * mpeg2dec, int start, int end);
 
 void mpeg2_pts (mpeg2dec_t * mpeg2dec, uint32_t pts);
-
-void mpeg2_drop (mpeg2dec_t * mpeg2dec, int flag);
 
 #endif /* MPEG2_H */

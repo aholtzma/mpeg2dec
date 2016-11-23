@@ -1,4 +1,25 @@
-mpeg2dec-0.2.1 Sun Mar 17 23:24:04 PST 2002 
+mpeg2dec-0.3.0 Wed Nov 27 23:23:23 PST 2002
+
+The main goal of this release is to preview the new libmpeg2 API. The
+old API was not flexible enough for most users, as a result various
+projects (xine, mplayer etc...) ended up rewriting their own versions
+of decode.c. The goal with this new API is that it will be flexible
+enough for people to actually use it instead of rolling their own :)
+
+In many respects, this code is less mature than the 0.2.x codebase
+was. There will probably be a few changes in future versions regarding
+color conversion and CPU detection, to cite a few. The goal is to get
+a release out and then add the missing features in future 0.3.x
+releases.
+
+In addition to the new API, there are a few new features already too.
+For example, we now have improved the error handling, which should
+help applications who do seeking for example. Also a few minor speed
+improvements (about 7%) and SIMD optimizations now enabled in the VC++
+port too.
+
+
+mpeg2dec-0.2.1 Sun Mar 17 23:24:04 PST 2002
 
 Two major new features: First, a much higher tolerance to corrupted
 streams. Instead of just segfaulting, we should now be able to keep
@@ -15,7 +36,7 @@ And, the libvo interface has been slightly extended so people can more
 easily make use of the various mpeg flags.
 
 
-mpeg2dec-0.2.0 Thu Feb 15 20:12:34 PST 2001 
+mpeg2dec-0.2.0 Thu Feb 15 20:12:34 PST 2001
 
 The most important new feature is the support for field
 pictures. mpeg2dec is now able to display any conformant

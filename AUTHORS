@@ -7,6 +7,8 @@ code was (re)written by him.
 
 Other contributors include:
 	Bruno Barreyra <barreyra@ufl.edu> - build fixes
+	Gildas Bazin <gbazin@netcourrier.com> - mingw32 port
+	Alexander W. Chin <alexc@newt.phys.unsw.edu.au> - progressive_seq fix
 	Stephen Crowley <stephenc@dns2.digitalpassage.com> - build fixes
 	Didier Gautheron <dgautheron@magic.fr> - bug fixes
 	Ryan C. Gordon <icculus@lokigames.com> - SDL support

@@ -1,3 +1,10 @@
+mpeg2dec-0.3.0 Wed Nov 27 23:23:23 PST 2002
+-first release using the new libmpeg2 API
+-improved error handling - does not seek to the next sequence header anymore
+-more minor optimizations (about 7% faster than 0.2.1)
+-support for streams higher than 2800 pixels
+-added SIMD optimizations to the VC++ port
+
 mpeg2dec-0.2.1 Sun Mar 17 23:24:04 PST 2002
 -altivec optimizations - provides 2.5x speedup for g4 processors
 -fixed MC code - should not crash on bad streams anymore
@@ -33,7 +40,7 @@ mpeg2dec-0.1.7 Thu Nov  2 21:38:33 PST 2000
 -new configuration code
 
 mpeg2dec-0.1.6 Wed Mar 22 09:45:44 PST 2000
--enhanced g200 
+-enhanced g200
 -solaris fixes
 -inlined, rewritten bitstream code (much faster now)
 -moved colorspace conversion code into yuv2rgb.c

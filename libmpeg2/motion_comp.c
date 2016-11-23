@@ -23,9 +23,9 @@
 
 #include "config.h"
 
-#include <stdio.h>
 #include <inttypes.h>
 
+#include "mpeg2.h"
 #include "mpeg2_internal.h"
 #include "mm_accel.h"
 
@@ -34,33 +34,25 @@ mpeg2_mc_t mpeg2_mc;
 void mpeg2_mc_init (uint32_t mm_accel)
 {
 #ifdef ARCH_X86
-    if (mm_accel & MM_ACCEL_X86_MMXEXT) {
-	fprintf (stderr, "Using MMXEXT for motion compensation\n");
+    if (mm_accel & MM_ACCEL_X86_MMXEXT)
 	mpeg2_mc = mpeg2_mc_mmxext;
-    } else if (mm_accel & MM_ACCEL_X86_3DNOW) {
-	fprintf (stderr, "Using 3DNOW for motion compensation\n");
+    else if (mm_accel & MM_ACCEL_X86_3DNOW)
 	mpeg2_mc = mpeg2_mc_3dnow;
-    } else if (mm_accel & MM_ACCEL_X86_MMX) {
-	fprintf (stderr, "Using MMX for motion compensation\n");
+    else if (mm_accel & MM_ACCEL_X86_MMX)
 	mpeg2_mc = mpeg2_mc_mmx;
-    } else
+    else
 #endif
 #ifdef ARCH_PPC
-    if (mm_accel & MM_ACCEL_PPC_ALTIVEC) {
-	fprintf (stderr, "Using altivec for motion compensation\n");
+    if (mm_accel & MM_ACCEL_PPC_ALTIVEC)
 	mpeg2_mc = mpeg2_mc_altivec;
-    } else
+    else
 #endif
 #ifdef LIBMPEG2_MLIB
-    if (mm_accel & MM_ACCEL_MLIB) {
-	fprintf (stderr, "Using mlib for motion compensation\n");
+    if (mm_accel & MM_ACCEL_MLIB)
 	mpeg2_mc = mpeg2_mc_mlib;
-    } else
+    else
 #endif
-    {
-	fprintf (stderr, "No accelerated motion compensation found\n");
 	mpeg2_mc = mpeg2_mc_c;
-    }
 }
 
 #define avg2(a,b) ((a+b+1)>>1)
@@ -78,8 +70,8 @@ void mpeg2_mc_init (uint32_t mm_accel)
 /* mc function template */
 
 #define MC_FUNC(op,xy)							\
-static void MC_##op##_##xy##_16_c (uint8_t * dest, uint8_t * ref,	\
-				 int stride, int height)		\
+static void MC_##op##_##xy##_16_c (uint8_t * dest, const uint8_t * ref,	\
+				   const int stride, int height)	\
 {									\
     do {								\
 	op (predict_##xy, 0);						\
@@ -102,8 +94,8 @@ static void MC_##op##_##xy##_16_c (uint8_t * dest, uint8_t * ref,	\
 	dest += stride;							\
     } while (--height);							\
 }									\
-static void MC_##op##_##xy##_8_c (uint8_t * dest, uint8_t * ref,	\
-				int stride, int height)			\
+static void MC_##op##_##xy##_8_c (uint8_t * dest, const uint8_t * ref,	\
+				  const int stride, int height)		\
 {									\
     do {								\
 	op (predict_##xy, 0);						\

@@ -89,7 +89,7 @@ SOURCE=..\libvo\video_out.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\libvo\video_out_mga.c
+SOURCE=..\libvo\video_out_dx.c
 # End Source File
 # Begin Source File
 
@@ -113,11 +113,7 @@ SOURCE=..\libvo\yuv2rgb.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\libvo\yuv2rgb_mlib.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\libvo\yuv2rgb_mmx.c
+SOURCE=.\yuv2rgb_mmx.obj
 # End Source File
 # End Group
 # Begin Group "Header Files"

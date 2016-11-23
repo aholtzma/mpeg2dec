@@ -24,20 +24,19 @@
 #ifndef __LINUX_HW_BES_H
 #define __LINUX_HW_BES_H
 
-typedef struct mga_vid_config_s
-{
-uint32_t card_type;
-uint32_t ram_size;
-uint32_t src_width;
-uint32_t src_height;
-uint32_t dest_width;
-uint32_t dest_height;
-uint32_t x_org;
-uint32_t y_org;
-uint8_t  colkey_on;
-uint8_t  colkey_red;
-uint8_t  colkey_green;
-uint8_t  colkey_blue;
+typedef struct {
+    uint32_t card_type;
+    uint32_t ram_size;
+    uint32_t src_width;
+    uint32_t src_height;
+    uint32_t dest_width;
+    uint32_t dest_height;
+    uint32_t x_org;
+    uint32_t y_org;
+    uint8_t  colkey_on;
+    uint8_t  colkey_red;
+    uint8_t  colkey_green;
+    uint8_t  colkey_blue;
 } mga_vid_config_t;
 
 #define MGA_VID_CONFIG    _IOR('J', 1, mga_vid_config_t)

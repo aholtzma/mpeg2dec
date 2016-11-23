@@ -1,7 +1,7 @@
-CFLAGS = @CFLAGS@ @LIBMPEG2_CFLAGS@
+AM_CFLAGS = @CFLAGS@ @LIBMPEG2_CFLAGS@
 
 lib_LTLIBRARIES = libmpeg2.la
-libmpeg2_la_SOURCES = decode.c header.c stats.c cpu_state.c slice.c \
+libmpeg2_la_SOURCES = alloc.c decode.c header.c cpu_state.c slice.c \
 		      motion_comp.c motion_comp_mlib.c motion_comp_mmx.c \
 		      motion_comp_altivec.c \
 		      idct.c idct_mlib.c idct_mmx.c idct_altivec.c
@@ -12,5 +12,8 @@ libmpeg2_la_SOURCES = decode.c header.c stats.c cpu_state.c slice.c \
 # decode.c idct_mmx.c motion_comp_mmx.c
 libmpeg2_la_LIBADD = @LIBMPEG2_LIBS@
 libmpeg2_la_LDFLAGS = -no-undefined
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = libmpeg2.pc
 
 EXTRA_DIST = configure.incl vlc.h mpeg2_internal.h
