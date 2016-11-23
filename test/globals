@@ -12,13 +12,24 @@ fi
 srcdir=`cd $srcdir;pwd`
 builddir=`cd $builddir;pwd`
 
-bad_globals=`nm -g --defined-only $builddir/../libmpeg2/*.o|\
-    awk '{if ($3) print $3}'|grep -v '^_\?mpeg2_'`
+error=0
+
+bad_globals=`nm -g --defined-only $builddir/../libmpeg2/*.o |\
+    awk '{if ($3) print $3}' | grep -v '^_\?mpeg2_'`
 
 if test x"$bad_globals" != x""; then
     echo BAD GLOBAL SYMBOLS:
     for s in $bad_globals; do echo $s; done
-    exit 1
+    error=1
 fi
 
-exit 0
+bad_globals=`nm -g --defined-only $builddir/../libmpeg2/convert/*.o |\
+    awk '{if ($3) print $3}' | grep -v '^_\?mpeg2convert_'`
+
+if test x"$bad_globals" != x""; then
+    echo BAD GLOBAL SYMBOLS:
+    for s in $bad_globals; do echo $s; done
+    error=1
+fi
+
+exit $error

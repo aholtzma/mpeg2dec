@@ -1,6 +1,6 @@
 /*
  * motion_comp.c
- * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 2000-2003 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
@@ -26,6 +26,7 @@
 #include <inttypes.h>
 
 #include "mpeg2.h"
+#include "attributes.h"
 #include "mpeg2_internal.h"
 
 mpeg2_mc_t mpeg2_mc;
@@ -51,9 +52,9 @@ void mpeg2_mc_init (uint32_t accel)
 	mpeg2_mc = mpeg2_mc_alpha;
     else
 #endif
-#ifdef LIBMPEG2_MLIB
-    if (accel & MPEG2_ACCEL_MLIB)
-	mpeg2_mc = mpeg2_mc_mlib;
+#ifdef ARCH_SPARC
+    if (accel & MPEG2_ACCEL_SPARC_VIS)
+	mpeg2_mc = mpeg2_mc_vis;
     else
 #endif
 	mpeg2_mc = mpeg2_mc_c;

@@ -1,6 +1,6 @@
 /*
  * mpeg2dec.c
- * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 2000-2003 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
@@ -33,15 +33,16 @@
 #include <fcntl.h>
 #include <io.h>
 #endif
+#ifdef LIBVO_SDL
+#include <SDL/SDL.h>
+#endif
 #include <inttypes.h>
 
 #include "mpeg2.h"
 #include "video_out.h"
-#include "convert.h"
 #include "gettimeofday.h"
 
-#define BUFFER_SIZE 4096
-static uint8_t buffer[BUFFER_SIZE];
+static int buffer_size = 4096;
 static FILE * in_file;
 static int demux_track = 0;
 static int demux_pid = 0;
@@ -49,16 +50,20 @@ static int demux_pva = 0;
 static mpeg2dec_t * mpeg2dec;
 static vo_open_t * output_open = NULL;
 static vo_instance_t * output;
+static int sigint = 0;
+static int total_offset = 0;
+static int verbose = 0;
+
+void dump_state (FILE * f, mpeg2_state_t state, const mpeg2_info_t * info,
+		 int offset, int verbose);
 
 #ifdef HAVE_GETTIMEOFDAY
 
-static void print_fps (int final);
-
 static RETSIGTYPE signal_handler (int sig)
 {
-    print_fps (1);
+    sigint = 1;
     signal (sig, SIG_DFL);
-    raise (sig);
+    return (RETSIGTYPE)0;
 }
 
 static void print_fps (int final)
@@ -70,6 +75,9 @@ static void print_fps (int final)
     struct timeval tv_end;
     float fps, tfps;
     int frames, elapsed;
+
+    if (verbose)
+	return;
 
     gettimeofday (&tv_end, NULL);
 
@@ -124,15 +132,19 @@ static void print_fps (int final)
 static void print_usage (char ** argv)
 {
     int i;
-    vo_driver_t * drivers;
+    vo_driver_t const * drivers;
 
-    fprintf (stderr, "usage: %s [-o <mode>] [-s [<track>]] [-t <pid>] [-p] "
-	     "[-c] <file>\n"
+    fprintf (stderr, "usage: "
+	     "%s [-h] [-o <mode>] [-s [<track>]] [-t <pid>] [-p] [-c] \\\n"
+	     "\t\t[-v] [-b <bufsize>] <file>\n"
+	     "\t-h\tdisplay help and available video output modes\n"
 	     "\t-s\tuse program stream demultiplexer, "
 	     "track 0-15 or 0xe0-0xef\n"
 	     "\t-t\tuse transport stream demultiplexer, pid 0x10-0x1ffe\n"
 	     "\t-p\tuse pva demultiplexer\n"
 	     "\t-c\tuse c implementation, disables all accelerations\n"
+	     "\t-v\tverbose information about the MPEG stream\n"
+	     "\t-b\tset input buffer size, default 4096 bytes\n"
 	     "\t-o\tvideo output mode\n", argv[0]);
 
     drivers = vo_drivers ();
@@ -145,12 +157,12 @@ static void print_usage (char ** argv)
 static void handle_args (int argc, char ** argv)
 {
     int c;
-    vo_driver_t * drivers;
+    vo_driver_t const * drivers;
     int i;
     char * s;
 
     drivers = vo_drivers ();
-    while ((c = getopt (argc, argv, "s::t:pco:")) != -1)
+    while ((c = getopt (argc, argv, "hs::t:pco:vb::")) != -1)
 	switch (c) {
 	case 'o':
 	    for (i = 0; drivers[i].name != NULL; i++)
@@ -168,7 +180,7 @@ static void handle_args (int argc, char ** argv)
 		demux_track = strtol (optarg, &s, 0);
 		if (demux_track < 0xe0)
 		    demux_track += 0xe0;
-		if ((demux_track < 0xe0) || (demux_track > 0xef) || (*s)) {
+		if (demux_track < 0xe0 || demux_track > 0xef || *s) {
 		    fprintf (stderr, "Invalid track number: %s\n", optarg);
 		    print_usage (argv);
 		}
@@ -177,7 +189,7 @@ static void handle_args (int argc, char ** argv)
 
 	case 't':
 	    demux_pid = strtol (optarg, &s, 0);
-	    if ((demux_pid < 0x10) || (demux_pid > 0x1ffe) || (*s)) {
+	    if (demux_pid < 0x10 || demux_pid > 0x1ffe || *s) {
 		fprintf (stderr, "Invalid pid: %s\n", optarg);
 		print_usage (argv);
 	    }
@@ -189,6 +201,22 @@ static void handle_args (int argc, char ** argv)
 
 	case 'c':
 	    mpeg2_accel (0);
+	    break;
+
+	case 'v':
+	    if (++verbose > 4)
+		print_usage (argv);
+	    break;
+
+	case 'b':
+	    buffer_size = 1;
+	    if (optarg != NULL) {
+		buffer_size = strtol (optarg, &s, 0);
+		if (buffer_size < 1 || *s) {
+		    fprintf (stderr, "Invalid buffer size: %s\n", optarg);
+		    print_usage (argv);
+		}
+	    }
 	    break;
 
 	default:
@@ -210,30 +238,66 @@ static void handle_args (int argc, char ** argv)
 	in_file = stdin;
 }
 
+static void * malloc_hook (unsigned size, mpeg2_alloc_t reason)
+{
+    void * buf;
+
+    /*
+     * Invalid streams can refer to fbufs that have not been
+     * initialized yet. For example the stream could start with a
+     * picture type onther than I. Or it could have a B picture before
+     * it gets two reference frames. Or, some slices could be missing.
+     *
+     * Consequently, the output depends on the content 2 output
+     * buffers have when the sequence begins. In release builds, this
+     * does not matter (garbage in, garbage out), but in test code, we
+     * always zero all our output buffers to:
+     * - make our test produce deterministic outputs
+     * - hint checkergcc that it is fine to read from all our output
+     *   buffers at any time
+     */
+    if ((int)reason < 0) {
+        return NULL;
+    }
+    buf = mpeg2_malloc (size, (mpeg2_alloc_t)-1);
+    if (buf && (reason == MPEG2_ALLOC_YUV || reason == MPEG2_ALLOC_CONVERTED))
+        memset (buf, 0, size);
+    return buf;
+}
+
 static void decode_mpeg2 (uint8_t * current, uint8_t * end)
 {
     const mpeg2_info_t * info;
-    int state;
+    mpeg2_state_t state;
     vo_setup_result_t setup_result;
 
     mpeg2_buffer (mpeg2dec, current, end);
+    total_offset += end - current;
 
     info = mpeg2_info (mpeg2dec);
     while (1) {
 	state = mpeg2_parse (mpeg2dec);
+	if (verbose)
+	    dump_state (stderr, state, info,
+			total_offset - mpeg2_getpos (mpeg2dec), verbose);
 	switch (state) {
-	case -1:
+	case STATE_BUFFER:
 	    return;
 	case STATE_SEQUENCE:
 	    /* might set nb fbuf, convert format, stride */
 	    /* might set fbufs */
 	    if (output->setup (output, info->sequence->width,
-			       info->sequence->height, &setup_result)) {
+			       info->sequence->height,
+			       info->sequence->chroma_width,
+			       info->sequence->chroma_height, &setup_result)) {
 		fprintf (stderr, "display setup failed\n");
 		exit (1);
 	    }
-	    if (setup_result.convert)
-		mpeg2_convert (mpeg2dec, setup_result.convert, NULL);
+	    if (setup_result.convert &&
+		mpeg2_convert (mpeg2dec, setup_result.convert, NULL)) {
+		fprintf (stderr, "color conversion setup failed\n");
+		exit (1);
+	    }
 	    if (output->set_fbuf) {
 		uint8_t * buf[3];
 		void * id;
@@ -254,6 +318,7 @@ static void decode_mpeg2 (uint8_t * current, uint8_t * end)
 		output->setup_fbuf (output, buf, &id);
 		mpeg2_set_buf (mpeg2dec, buf, id);
 	    }
+	    mpeg2_skip (mpeg2dec, (output->draw == NULL));
 	    break;
 	case STATE_PICTURE:
 	    /* might skip */
@@ -269,21 +334,22 @@ static void decode_mpeg2 (uint8_t * current, uint8_t * end)
 		output->start_fbuf (output, info->current_fbuf->buf,
 				    info->current_fbuf->id);
 	    break;
-	case STATE_PICTURE_2ND:
-	    /* should not do anything */
-	    break;
 	case STATE_SLICE:
 	case STATE_END:
+	case STATE_INVALID_END:
 	    /* draw current picture */
 	    /* might free frame buffer */
 	    if (info->display_fbuf) {
-		output->draw (output, info->display_fbuf->buf,
-			      info->display_fbuf->id);
+		if (output->draw)
+		    output->draw (output, info->display_fbuf->buf,
+				  info->display_fbuf->id);
 		print_fps (0);
 	    }
 	    if (output->discard && info->discard_fbuf)
 		output->discard (output, info->discard_fbuf->buf,
 				 info->discard_fbuf->id);
+	    break;
+	default:
 	    break;
 	}
     }
@@ -419,7 +485,7 @@ static int demux (uint8_t * buf, uint8_t * end, int flags)
 	    /* break;         */
 	    return 1;
 	case 0xba:	/* pack header */
-	    NEEDBYTES (12);
+	    NEEDBYTES (5);
 	    if ((header[4] & 0xc0) == 0x40) {	/* mpeg2 */
 		NEEDBYTES (14);
 		len = 14 + (header[13] & 7);
@@ -427,11 +493,12 @@ static int demux (uint8_t * buf, uint8_t * end, int flags)
 		DONEBYTES (len);
 		/* header points to the mpeg2 pack header */
 	    } else if ((header[4] & 0xf0) == 0x20) {	/* mpeg1 */
+		NEEDBYTES (12);
 		DONEBYTES (12);
 		/* header points to the mpeg1 pack header */
 	    } else {
 		fprintf (stderr, "weird pack header\n");
-		exit (1);
+		DONEBYTES (5);
 	    }
 	    break;
 	default:
@@ -444,12 +511,17 @@ static int demux (uint8_t * buf, uint8_t * end, int flags)
 		    NEEDBYTES (len);
 		    /* header points to the mpeg2 pes header */
 		    if (header[7] & 0x80) {
-			uint32_t pts;
+			uint32_t pts, dts;
 
-			pts = (((buf[9] >> 1) << 30) |
-			       (buf[10] << 22) | ((buf[11] >> 1) << 15) |
-			       (buf[12] << 7) | (buf[13] >> 1));
-			mpeg2_pts (mpeg2dec, pts);
+			pts = (((header[9] >> 1) << 30) |
+			       (header[10] << 22) | ((header[11] >> 1) << 15) |
+			       (header[12] << 7) | (header[13] >> 1));
+			dts = (!(header[7] & 0x40) ? pts :
+			       (((header[14] >> 1) << 30) |
+				(header[15] << 22) |
+				((header[16] >> 1) << 15) |
+				(header[17] << 7) | (header[18] >> 1)));
+			mpeg2_tag_picture (mpeg2dec, pts, dts);
 		    }
 		} else {	/* mpeg1 */
 		    int len_skip;
@@ -473,13 +545,17 @@ static int demux (uint8_t * buf, uint8_t * end, int flags)
 		    NEEDBYTES (len);
 		    /* header points to the mpeg1 pes header */
 		    ptsbuf = header + len_skip;
-		    if (ptsbuf[-1] & 0x20) {
-			uint32_t pts;
+		    if ((ptsbuf[-1] & 0xe0) == 0x20) {
+			uint32_t pts, dts;
 
 			pts = (((ptsbuf[-1] >> 1) << 30) |
 			       (ptsbuf[0] << 22) | ((ptsbuf[1] >> 1) << 15) |
 			       (ptsbuf[2] << 7) | (ptsbuf[3] >> 1));
-			mpeg2_pts (mpeg2dec, pts);
+			dts = (((ptsbuf[-1] & 0xf0) != 0x30) ? pts :
+			       (((ptsbuf[4] >> 1) << 30) |
+				(ptsbuf[5] << 22) | ((ptsbuf[6] >> 1) << 15) |
+				(ptsbuf[7] << 7) | (ptsbuf[18] >> 1)));
+			mpeg2_tag_picture (mpeg2dec, pts, dts);
 		    }
 		}
 		DONEBYTES (len);
@@ -514,20 +590,24 @@ static int demux (uint8_t * buf, uint8_t * end, int flags)
 
 static void ps_loop (void)
 {
+    uint8_t * buffer = (uint8_t *) malloc (buffer_size);
     uint8_t * end;
 
+    if (buffer == NULL)
+	exit (1);
     do {
-	end = buffer + fread (buffer, 1, BUFFER_SIZE, in_file);
+	end = buffer + fread (buffer, 1, buffer_size, in_file);
 	if (demux (buffer, end, 0))
 	    break;	/* hit program_end_code */
-    } while (end == buffer + BUFFER_SIZE);
+    } while (end == buffer + buffer_size && !sigint);
+    free (buffer);
 }
 
 static int pva_demux (uint8_t * buf, uint8_t * end)
 {
     static int state = DEMUX_SKIP;
     static int state_bytes = 0;
-    static uint8_t head_buf[12];
+    static uint8_t head_buf[15];
 
     uint8_t * header;
     int bytes;
@@ -591,8 +671,9 @@ static int pva_demux (uint8_t * buf, uint8_t * end)
 		len = 12 + (header[5] & 3);
 		NEEDBYTES (len);
 		decode_mpeg2 (header + 12, header + len);
-		mpeg2_pts (mpeg2dec, ((header[8] << 24) | (header[9] << 16) |
-				      (header[10] << 8) | header[11]));
+		mpeg2_tag_picture (mpeg2dec,
+				   ((header[8] << 24) | (header[9] << 16) |
+				    (header[10] << 8) | header[11]), 0);
 	    }
 	    DONEBYTES (len);
 	    bytes = (header[6] << 8) + header[7] + 8 - len;
@@ -611,32 +692,38 @@ static int pva_demux (uint8_t * buf, uint8_t * end)
 
 static void pva_loop (void)
 {
+    uint8_t * buffer = (uint8_t *) malloc (buffer_size);
     uint8_t * end;
 
+    if (buffer == NULL)
+	exit (1);
     do {
-	end = buffer + fread (buffer, 1, BUFFER_SIZE, in_file);
+	end = buffer + fread (buffer, 1, buffer_size, in_file);
 	pva_demux (buffer, end);
-    } while (end == buffer + BUFFER_SIZE);
+    } while (end == buffer + buffer_size && !sigint);
+    free (buffer);
 }
 
 static void ts_loop (void)
 {
-#define PACKETS (BUFFER_SIZE / 188)
+    uint8_t * buffer = (uint8_t *) malloc (buffer_size);
     uint8_t * buf;
+    uint8_t * nextbuf;
     uint8_t * data;
     uint8_t * end;
-    int packets;
-    int i;
     int pid;
 
+    if (buffer == NULL || buffer_size < 188)
+	exit (1);
+    buf = buffer;
     do {
-	packets = fread (buffer, 188, PACKETS, in_file);
-	for (i = 0; i < packets; i++) {
-	    buf = buffer + i * 188;
-	    end = buf + 188;
-	    if (buf[0] != 0x47) {
+	end = buf + fread (buf, 1, buffer + buffer_size - buf, in_file);
+	buf = buffer;
+	for (; (nextbuf = buf + 188) <= end; buf = nextbuf) {
+	    if (*buf != 0x47) {
 		fprintf (stderr, "bad sync byte\n");
-		exit (1);
+		nextbuf = buf + 1;
+		continue;
 	    }
 	    pid = ((buf[1] << 8) + buf[2]) & 0x1fff;
 	    if (pid != demux_pid)
@@ -644,28 +731,39 @@ static void ts_loop (void)
 	    data = buf + 4;
 	    if (buf[3] & 0x20) {	/* buf contains an adaptation field */
 		data = buf + 5 + buf[4];
-		if (data > end)
+		if (data > nextbuf)
 		    continue;
 	    }
 	    if (buf[3] & 0x10)
-		demux (data, end, (buf[1] & 0x40) ? DEMUX_PAYLOAD_START : 0);
+		demux (data, nextbuf,
+		       (buf[1] & 0x40) ? DEMUX_PAYLOAD_START : 0);
 	}
-    } while (packets == PACKETS);
+	if (end != buffer + buffer_size)
+	    break;
+	memcpy (buffer, buf, end - buf);
+	buf = buffer + (end - buf);
+    } while (!sigint);
+    free (buffer);
 }
 
 static void es_loop (void)
 {
+    uint8_t * buffer = (uint8_t *) malloc (buffer_size);
     uint8_t * end;
 
+    if (buffer == NULL)
+	exit (1);
     do {
-	end = buffer + fread (buffer, 1, BUFFER_SIZE, in_file);
+	end = buffer + fread (buffer, 1, buffer_size, in_file);
 	decode_mpeg2 (buffer, end);
-    } while (end == buffer + BUFFER_SIZE);
+    } while (end == buffer + buffer_size && !sigint);
+    free (buffer);
 }
 
 int main (int argc, char ** argv)
 {
 #ifdef HAVE_IO_H
+    setmode (fileno (stdin), O_BINARY);
     setmode (fileno (stdout), O_BINARY);
 #endif
 
@@ -682,6 +780,7 @@ int main (int argc, char ** argv)
     mpeg2dec = mpeg2_init ();
     if (mpeg2dec == NULL)
 	exit (1);
+    mpeg2_malloc_hooks (malloc_hook, NULL);
 
     if (demux_pva)
 	pva_loop ();
@@ -696,5 +795,6 @@ int main (int argc, char ** argv)
     if (output->close)
 	output->close (output);
     print_fps (1);
+    fclose (in_file);
     return 0;
 }

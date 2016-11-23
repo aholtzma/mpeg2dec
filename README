@@ -83,6 +83,9 @@ libmpeg2 is being used by various other projects, including:
 	mpeg-2 audio and video decoder, but it since became a
 	full-featured DVD and video media player.
 
+      *	VideoLAN (http://www.videolan.org/) - video streaming over an
+	ethernet network, can also be used as a standalone player.
+
       *	MPlayer (http://www.MPlayerHQ.hu) - another good player, it is
 	also very robust against damaged streams.
 
@@ -92,7 +95,13 @@ libmpeg2 is being used by various other projects, including:
       *	mpeg2decX (http://homepage1.nifty.com/~toku/software_en.html) -
 	a graphical interface for mpeg2dec for macintosh osX.
 
+      *	TCVP (http://tcvp.sf.net) - video and music player for unix.
+
       *	drip (http://drip.sourceforge.net/) - a DVD to DIVX transcoder.
+
+      *	PoMP
+	(http://www.dmclab.hanyang.ac.kr/research/project/PoDS/PoDS_sw.htm) -
+	a research player optimized to minimize disk power consumption.
 
       *	OMS (http://www.linuxvideo.org/oms/)
 
@@ -112,9 +121,6 @@ libmpeg2 is being used by various other projects, including:
 	GOP-accurate editor for MPEG2 streams.
 
 If you use libmpeg2 in another project, let us know !
-
-VideoLAN (http://www.videolan.org/) does not directly use libmpeg2,
-but this is still a cool project :)
 
 
 TASKS

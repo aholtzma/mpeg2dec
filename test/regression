@@ -3,7 +3,7 @@
 if test x"$srcdir" != x""; then
     builddir="."	# running from make check, but it does not define that
 else
-    srcdir=`echo "$0" | sed s,[^/]*$,,`
+    srcdir=`echo "$0" | sed 's,[^/]*$,,'`
     test "$srcdir" = "$0" && srcdir=.
     test -z "$srcdir" && srcdir=.
     builddir="$srcdir"	# running manually, have to assume
@@ -15,7 +15,7 @@ builddir=`cd $builddir;pwd`
 testfile="$srcdir/tests"
 if [ $# -ge 1 ]; then testfile="$1"; fi
 
-dirs=`awk -F '#' '{print $1}' $testfile`
+dirs=`cut -d '#' -f 1 $testfile`
 
 basedir=`head -n 1 $testfile | awk '{print $2}'`
 cd $srcdir; if [ ! -d $basedir ]; then
@@ -48,10 +48,23 @@ mpeg2dec="../../src/mpeg2dec"; if [ ! -x $mpeg2dec ]; then
 fi
 
 for dir in $dirs; do
-    echo $dir
-    $mpeg2dec $accel -o md5 $basedir/$dir/stream >/dev/null 2>&1 >md5
-    diff -wu md5 $basedir/$dir/$md5 || error=1
-    rm -f md5 core
+    if [ -f $basedir/$dir/stream ]; then
+	echo $dir
+	$mpeg2dec -vvvv $accel -o md5 $basedir/$dir/stream >dump 2>&1 >md5
+	if [ ! -f $basedir/$dir/$md5 ]; then
+	    echo MISSING FILE $dir/$md5
+	elif [ ! -f $basedir/$dir/IGNORE-MD5 ]; then
+	    diff -wu md5 $basedir/$dir/$md5 || error=1
+	fi
+	if [ ! -f $basedir/$dir/dump ]; then
+	    echo MISSING FILE $dir/dump
+	else
+	    sed '1d' dump | diff -wu - $basedir/$dir/dump || error=1
+	fi
+	rm -f md5 dump core
+    else
+	echo missing file $dir/stream
+    fi
 done
 
 cd ..

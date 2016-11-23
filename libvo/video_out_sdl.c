@@ -1,7 +1,7 @@
 /*
  * video_out_sdl.c
  *
- * Copyright (C) 2000-2002 Ryan C. Gordon <icculus@lokigames.com> and
+ * Copyright (C) 2000-2003 Ryan C. Gordon <icculus@lokigames.com> and
  *                         Dominik Schnitzer <aeneas@linuxvideo.org>
  *
  * SDL info, source, and binaries can be found at http://www.libsdl.org/
@@ -56,6 +56,10 @@ static void sdl_setup_fbuf (vo_instance_t * _instance,
     buf[0] = overlay->pixels[0];
     buf[1] = overlay->pixels[2];
     buf[2] = overlay->pixels[1];
+    if (((long)buf[0] & 15) || ((long)buf[1] & 15) || ((long)buf[2] & 15)) {
+	fprintf (stderr, "Unaligned buffers. Anyone know how to fix this ?\n");
+	exit (1);
+    }
 }
 
 static void sdl_start_fbuf (vo_instance_t * instance,
@@ -99,8 +103,9 @@ static void sdl_close (vo_instance_t * _instance)
 }
 #endif
 
-static int sdl_setup (vo_instance_t * _instance, int width, int height,
-		      vo_setup_result_t * result)
+static int sdl_setup (vo_instance_t * _instance, unsigned int width,
+		      unsigned int height, unsigned int chroma_width,
+		      unsigned int chroma_height, vo_setup_result_t * result)
 {
     sdl_instance_t * instance;
 

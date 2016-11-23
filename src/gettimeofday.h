@@ -1,6 +1,6 @@
 /*
  * gettimeofday.h
- * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 2000-2003 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
@@ -21,8 +21,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#if defined(HAVE_SYS_TIME_H) && defined(HAVE_GETTIMEOFDAY)
+#if defined(HAVE_STRUCT_TIMEVAL) && defined(HAVE_GETTIMEOFDAY)
+#if defined(TIME_WITH_SYS_TIME)
 #include <sys/time.h>
+#include <time.h>
+#elif defined(HAVE_SYS_TIME_H)
+#include <sys/time.h>
+#else
+#include <time.h>
+#endif
 #elif defined(HAVE_SYS_TIMEB_H) && defined(HAVE_FTIME)
 
 #define HAVE_GETTIMEOFDAY 1

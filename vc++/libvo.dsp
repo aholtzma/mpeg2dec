@@ -107,14 +107,6 @@ SOURCE=..\libvo\video_out_sdl.c
 
 SOURCE=..\libvo\video_out_x11.c
 # End Source File
-# Begin Source File
-
-SOURCE=..\libvo\yuv2rgb.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\yuv2rgb_mmx.obj
-# End Source File
 # End Group
 # Begin Group "Header Files"
 
@@ -126,10 +118,6 @@ SOURCE=..\include\video_out.h
 # Begin Source File
 
 SOURCE=..\libvo\video_out_internal.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\libvo\yuv2rgb.h
 # End Source File
 # End Group
 # End Target

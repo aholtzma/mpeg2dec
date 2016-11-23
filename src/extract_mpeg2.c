@@ -1,6 +1,6 @@
 /*
  * extract_mpeg2.c
- * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 2000-2003 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
@@ -43,7 +43,8 @@ static int demux_pva = 0;
 
 static void print_usage (char ** argv)
 {
-    fprintf (stderr, "usage: %s [-s <track>] [-t <pid>] [-p] <file>\n"
+    fprintf (stderr, "usage: %s [-h] [-s <track>] [-t <pid>] [-p] <file>\n"
+	     "\t-h\tdisplay help\n"
 	     "\t-s\tset track number (0-15 or 0xe0-0xef)\n"
 	     "\t-t\tuse transport stream demultiplexer, pid 0x10-0x1ffe\n"
 	     "\t-p\tuse pva demultiplexer\n",
@@ -57,13 +58,13 @@ static void handle_args (int argc, char ** argv)
     int c;
     char * s;
 
-    while ((c = getopt (argc, argv, "s:t:p")) != -1)
+    while ((c = getopt (argc, argv, "hs:t:p")) != -1)
 	switch (c) {
 	case 's':
 	    demux_track = strtol (optarg, &s, 0);
 	    if (demux_track < 0xe0)
 		demux_track += 0xe0;
-	    if ((demux_track < 0xe0) || (demux_track > 0xef) || (*s)) {
+	    if (demux_track < 0xe0 || demux_track > 0xef || *s) {
 		fprintf (stderr, "Invalid track number: %s\n", optarg);
 		print_usage (argv);
 	    }
@@ -71,7 +72,7 @@ static void handle_args (int argc, char ** argv)
 
 	case 't':
 	    demux_pid = strtol (optarg, &s, 0);
-	    if ((demux_pid < 0x10) || (demux_pid > 0x1ffe) || (*s)) {
+	    if (demux_pid < 0x10 || demux_pid > 0x1ffe || *s) {
 		fprintf (stderr, "Invalid pid: %s\n", optarg);
 		print_usage (argv);
 	    }
@@ -226,7 +227,7 @@ static int demux (uint8_t * buf, uint8_t * end, int flags)
 	    /* break;         */
 	    return 1;
 	case 0xba:	/* pack header */
-	    NEEDBYTES (12);
+	    NEEDBYTES (5);
 	    if ((header[4] & 0xc0) == 0x40) {	/* mpeg2 */
 		NEEDBYTES (14);
 		len = 14 + (header[13] & 7);
@@ -234,11 +235,12 @@ static int demux (uint8_t * buf, uint8_t * end, int flags)
 		DONEBYTES (len);
 		/* header points to the mpeg2 pack header */
 	    } else if ((header[4] & 0xf0) == 0x20) {	/* mpeg1 */
+		NEEDBYTES (12);
 		DONEBYTES (12);
 		/* header points to the mpeg1 pack header */
 	    } else {
 		fprintf (stderr, "weird pack header\n");
-		exit (1);
+		DONEBYTES (5);
 	    }
 	    break;
 	default:
@@ -404,22 +406,21 @@ static void pva_loop (void)
 
 static void ts_loop (void)
 {
-#define PACKETS (BUFFER_SIZE / 188)
     uint8_t * buf;
+    uint8_t * nextbuf;
     uint8_t * data;
     uint8_t * end;
-    int packets;
-    int i;
     int pid;
 
-    do {
-	packets = fread (buffer, 188, PACKETS, in_file);
-	for (i = 0; i < packets; i++) {
-	    buf = buffer + i * 188;
-	    end = buf + 188;
-	    if (buf[0] != 0x47) {
+    buf = buffer;
+    while (1) {
+	end = buf + fread (buf, 1, buffer + BUFFER_SIZE - buf, in_file);
+	buf = buffer;
+	for (; (nextbuf = buf + 188) <= end; buf = nextbuf) {
+	    if (*buf != 0x47) {
 		fprintf (stderr, "bad sync byte\n");
-		exit (1);
+		nextbuf = buf + 1;
+		continue;
 	    }
 	    pid = ((buf[1] << 8) + buf[2]) & 0x1fff;
 	    if (pid != demux_pid)
@@ -427,18 +428,24 @@ static void ts_loop (void)
 	    data = buf + 4;
 	    if (buf[3] & 0x20) {	/* buf contains an adaptation field */
 		data = buf + 5 + buf[4];
-		if (data > end)
+		if (data > nextbuf)
 		    continue;
 	    }
 	    if (buf[3] & 0x10)
-		demux (data, end, (buf[1] & 0x40) ? DEMUX_PAYLOAD_START : 0);
+		demux (data, nextbuf,
+		       (buf[1] & 0x40) ? DEMUX_PAYLOAD_START : 0);
 	}
-    } while (packets == PACKETS);
+	if (end != buffer + BUFFER_SIZE)
+	    break;
+	memcpy (buffer, buf, end - buf);
+	buf = buffer + (end - buf);
+    }
 }
 
 int main (int argc, char ** argv)
 {
 #ifdef HAVE_IO_H
+    setmode (fileno (stdin), O_BINARY);
     setmode (fileno (stdout), O_BINARY);
 #endif
 

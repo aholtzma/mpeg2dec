@@ -15,6 +15,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "libmpeg2convert"=".\libmpeg2convert.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "libvo"=".\libvo.dsp" - Package Owner=<4>
 
 Package=<5>
@@ -37,6 +49,9 @@ Package=<4>
 {{{
     Begin Project Dependency
     Project_Dep_Name libmpeg2
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmpeg2convert
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libvo

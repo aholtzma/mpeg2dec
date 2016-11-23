@@ -1,6 +1,6 @@
 /*
- * hw_bes.h
- * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
+ * mpeg2convert.h
+ * Copyright (C) 2000-2003 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
@@ -21,30 +21,28 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef __LINUX_HW_BES_H
-#define __LINUX_HW_BES_H
+#ifndef MPEG2CONVERT_H
+#define MPEG2CONVERT_H
 
-typedef struct {
-    uint32_t card_type;
-    uint32_t ram_size;
-    uint32_t src_width;
-    uint32_t src_height;
-    uint32_t dest_width;
-    uint32_t dest_height;
-    uint32_t x_org;
-    uint32_t y_org;
-    uint8_t  colkey_on;
-    uint8_t  colkey_red;
-    uint8_t  colkey_green;
-    uint8_t  colkey_blue;
-} mga_vid_config_t;
+mpeg2_convert_t mpeg2convert_rgb32;
+mpeg2_convert_t mpeg2convert_rgb24;
+mpeg2_convert_t mpeg2convert_rgb16;
+mpeg2_convert_t mpeg2convert_rgb15;
+mpeg2_convert_t mpeg2convert_rgb8;
+mpeg2_convert_t mpeg2convert_bgr32;
+mpeg2_convert_t mpeg2convert_bgr24;
+mpeg2_convert_t mpeg2convert_bgr16;
+mpeg2_convert_t mpeg2convert_bgr15;
+mpeg2_convert_t mpeg2convert_bgr8;
 
-#define MGA_VID_CONFIG    _IOR('J', 1, mga_vid_config_t)
-#define MGA_VID_ON        _IO ('J', 2)
-#define MGA_VID_OFF       _IO ('J', 3)
-#define MGA_VID_FSEL _IOR('J', 4, int)
+typedef enum {
+    MPEG2CONVERT_RGB = 0,
+    MPEG2CONVERT_BGR = 1
+} mpeg2convert_rgb_order_t;
 
-#define MGA_G200 0x1234
-#define MGA_G400 0x5678
+mpeg2_convert_t * mpeg2convert_rgb (mpeg2convert_rgb_order_t order,
+				    unsigned int bpp);
 
-#endif
+mpeg2_convert_t mpeg2convert_uyvy;
+
+#endif /* MPEG2CONVERT_H */

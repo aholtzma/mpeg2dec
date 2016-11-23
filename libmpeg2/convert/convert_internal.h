@@ -1,6 +1,6 @@
 /*
  * convert_internal.h
- * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 2000-2003 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
@@ -24,15 +24,18 @@
 typedef struct {
     uint8_t * rgb_ptr;
     int width;
-    int uv_stride, uv_stride_frame;
-    int rgb_stride, rgb_stride_frame;
-    void (* yuv2rgb) (uint8_t *, uint8_t *, uint8_t *, uint8_t *,
-		      void *, void *, int);
+    int y_stride, rgb_stride, y_increm, uv_increm, rgb_increm;
+    int chroma420, convert420;
+    int dither_offset, dither_stride;
+    int y_stride_frame, uv_stride_frame, rgb_stride_frame, rgb_stride_min;
 } convert_rgb_t;
 
-typedef void yuv2rgb_copy (void * id, uint8_t * const * src,
-			   unsigned int v_offset);
+typedef void mpeg2convert_copy_t (void * id, uint8_t * const * src,
+				  unsigned int v_offset);
 
-yuv2rgb_copy * yuv2rgb_init_mmxext (int bpp, int mode);
-yuv2rgb_copy * yuv2rgb_init_mmx (int bpp, int mode);
-yuv2rgb_copy * yuv2rgb_init_mlib (int bpp, int mode);
+mpeg2convert_copy_t * mpeg2convert_rgb_mmxext (int bpp, int mode,
+					       const mpeg2_sequence_t * seq);
+mpeg2convert_copy_t * mpeg2convert_rgb_mmx (int bpp, int mode,
+					    const mpeg2_sequence_t * seq);
+mpeg2convert_copy_t * mpeg2convert_rgb_vis (int bpp, int mode,
+					    const mpeg2_sequence_t * seq);

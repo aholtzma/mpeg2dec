@@ -1,3 +1,39 @@
+mpeg2dec-0.4.0 Tue Dec 23 03:04:35 PST 2003 
+
+Jeez, it's been way too long since the last release.
+
+The big functionality that warrants a 0.4.x version number is that we
+added support for 4:2:2 for 4:4:4 chroma formats. Thanks to Peter
+Gubanov for starting the effort there.
+
+A large part of the development effort has been to fix corner cases
+that happen with bad or corrupted streams, concatenated streams,
+etc... Regis Duchesne created test cases for this, which was a huge
+help. Right now the situation is that we don't know how to make
+libmpeg2 crash even when we try hard.
+
+There is a new helper library for color conversion to common format
+(currently rgb and uyvy). The ABI between libmpeg2 and libmpeg2convert
+might change in the future, but source code compatibility will be
+preserved. In the past people were supposed to write their own color
+conversion routines which was a pain since the API was messy.
+
+David S. Miller contributed some very nice sparc VIS optimizations for
+the motion compensation. There are no VIS optimizations for the IDCT
+yet but the plan is to get these in for a future 0.4.1 release.
+
+New functions have been added to set the buffer stride and to reset
+the decoder (typically after seeking thru a file).
+
+There is some very basic documentation in doc/* - it's still quite
+limited though. My good resolution for 2004 is to write better
+documentation :) In the mean time feel free to ask on mpeg2dec-devel
+or on irc.freenode.net channel #livid
+
+The speed has not changed much since last release - we tend to be
+about 1% faster. That's not too bad considering we have new features.
+
+
 mpeg2dec-0.3.1 Fri Dec 13 22:15:36 PST 2002
 
 This is mainly a maintainance release. On the API side, libmpeg2 now
