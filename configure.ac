@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.54)
-AC_INIT([libmpeg2],[0.5.0],[])
+AC_INIT([libmpeg2],[0.5.1],[])
 
 AC_CONFIG_SRCDIR([src/mpeg2dec.c])
 AC_CONFIG_AUX_DIR(.auto)
@@ -154,8 +154,67 @@ AC_SYS_LARGEFILE
 dnl Checks for library functions.
 AC_CHECK_FUNCS([gettimeofday ftime])
 
-builtin([include],[libmpeg2/configure.incl])
-builtin([include],[libvo/configure.incl])
+case "$target" in
+  dnl avoid -fPIC on 32-bit x86 platforms
+  i?86-*|k?-*)
+    AC_LIBTOOL_NON_PIC([LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -prefer-non-pic"])
+  ;;
+esac
+AC_SUBST([LIBMPEG2_CFLAGS])
+
+dnl check for cpudetect
+AC_ARG_ENABLE([accel-detect],
+    [  --disable-accel-detect  make a version without accel detection code])
+if test x"$enable_accel_detect" != x"no"; then
+    AC_DEFINE([ACCEL_DETECT],,[autodetect accelerations])
+fi
+
+dnl check for X11
+AC_PATH_XTRA
+if test x"$no_x" != x"yes"; then
+    dnl check for Xshm
+    AC_CHECK_LIB([Xext],[XShmCreateImage],
+        [AC_DEFINE([LIBVO_X11],,[libvo X11 support])
+        LIBVO_CFLAGS="$LIBVO_CFLAGS $X_CFLAGS"
+        LIBVO_LIBS="$LIBVO_LIBS $X_PRE_LIBS $X_LIBS $X_EXTRA_LIBS -lXext -lX11"
+        dnl check for Xv
+        AC_CHECK_LIB([Xv],[XvShmCreateImage],
+            [AC_DEFINE([LIBVO_XV],,[libvo Xv support])
+            LIBVO_LIBS="$LIBVO_LIBS -lXv"],,
+            [$X_PRE_LIBS $X_LIBS $X_EXTRA_LIBS -lXext -lX11])],,
+        [$X_PRE_LIBS $X_LIBS $X_EXTRA_LIBS -lX11])
+fi
+
+dnl check for DirectX
+AC_ARG_ENABLE([directx],
+    [  --enable-directx=DIR    use Win32 DirectX headers in DIR])
+case $enable_directx in
+    ""|yes)     AC_CHECK_HEADER([ddraw.h],
+                    [AC_DEFINE([LIBVO_DX],,[libvo DirectX support])
+                    LIBVO_LIBS="$LIBVO_LIBS -lgdi32"]);;
+    no)         ;;
+    *)          if test -f "$enable_directx/ddraw.h"; then
+                    AC_DEFINE([LIBVO_DX],,[libvo DirectX support])
+                    LIBVO_CFLAGS="$LIBVO_CFLAGS -I$enable_directx"
+                    LIBVO_LIBS="$LIBVO_LIBS -lgdi32"
+                else
+                    AC_MSG_ERROR([Cannot find $enable_directx/ddraw.h])
+                fi;;
+esac
+
+dnl check for SDL
+AC_ARG_ENABLE([sdl],[  --disable-sdl           make a version not using SDL])
+if test x"$enable_sdl" != x"no"; then
+    AC_CHECK_PROG([SDLCONFIG],[sdl-config],[yes])
+    if test x"$SDLCONFIG" = x"yes"; then
+        AC_DEFINE([LIBVO_SDL],,[libvo SDL support])
+        LIBVO_CFLAGS="$LIBVO_CFLAGS `sdl-config --cflags`"
+        LIBVO_LIBS="$LIBVO_LIBS `sdl-config --libs`"
+    fi
+fi
+
+AC_SUBST([LIBVO_CFLAGS])
+AC_SUBST([LIBVO_LIBS])
 
 AC_ARG_ENABLE([warnings],
     [  --enable-warnings       treat warnings as errors])
@@ -168,7 +227,16 @@ elif test x"$TENDRA" = x"yes"; then
     OPT_CFLAGS="$OPT_CFLAGS -DTenDRA_check"
 fi
 
-builtin([include],[src/configure.incl])
+MPEG2DEC_CFLAGS="$OPT_CFLAGS"
+
+AC_ARG_ENABLE([gprof],[  --enable-gprof          make a version using gprof])
+if test x"$enable_gprof" = x"yes"; then
+    AC_DEFINE([MPEG2DEC_GPROF],,[mpeg2dec profiling])
+    MPEG2DEC_CFLAGS=`echo "$MPEG2DEC_CFLAGS"|sed "s/-fomit-frame-pointer//g"`
+    MPEG2DEC_CFLAGS="$MPEG2DEC_CFLAGS -p"
+fi
+
+AC_SUBST([MPEG2DEC_CFLAGS])
 
 AC_C_ATTRIBUTE_ALIGNED
 

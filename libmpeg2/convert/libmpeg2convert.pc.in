@@ -4,7 +4,7 @@ libdir=@libdir@
 includedir=@includedir@
 
 Name: libmpeg2convert
-Description: libmpeg2 helper functions for converting to various formats.
+Description: Image conversion library helper for libmpeg2
 Version: @VERSION@
 Libs: -L${libdir} -lmpeg2convert
-Cflags: -I${includedir}/@PACKAGE@
+Cflags: -I${includedir}/mpeg2dec

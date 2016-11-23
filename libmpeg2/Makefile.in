@@ -38,8 +38,9 @@ subdir = libmpeg2
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/libmpeg2.pc.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
-	$(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/cflags.m4 \
+	$(top_srcdir)/m4/inttypes.m4 $(top_srcdir)/m4/keywords.m4 \
+	$(top_srcdir)/m4/nonpic.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -258,7 +259,7 @@ libmpeg2arch_la_SOURCES = motion_comp_mmx.c idct_mmx.c \
 libmpeg2arch_la_CFLAGS = $(OPT_CFLAGS) $(ARCH_OPT_CFLAGS) $(LIBMPEG2_CFLAGS)
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libmpeg2.pc
-EXTRA_DIST = configure.incl vlc.h mpeg2_internal.h
+EXTRA_DIST = vlc.h mpeg2_internal.h
 all: all-recursive
 
 .SUFFIXES:

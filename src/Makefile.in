@@ -37,8 +37,9 @@ bin_PROGRAMS = mpeg2dec$(EXEEXT) extract_mpeg2$(EXEEXT) \
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
-	$(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/cflags.m4 \
+	$(top_srcdir)/m4/inttypes.m4 $(top_srcdir)/m4/keywords.m4 \
+	$(top_srcdir)/m4/nonpic.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -220,7 +221,7 @@ mpeg2dec_LDADD = $(libvo) $(libmpeg2) $(libmpeg2convert)
 extract_mpeg2_SOURCES = extract_mpeg2.c getopt.c
 corrupt_mpeg2_SOURCES = corrupt_mpeg2.c getopt.c
 man_MANS = mpeg2dec.1 extract_mpeg2.1
-EXTRA_DIST = configure.incl getopt.h gettimeofday.h $(man_MANS)
+EXTRA_DIST = getopt.h gettimeofday.h $(man_MANS)
 all: all-am
 
 .SUFFIXES:

@@ -1,4 +1,10 @@
-mpeg2dec-0.5.0 Fri Jun 11 23:42:12 CET 2008
+libmpeg2-0.5.1 Fri Jul 18 16:28:49 CEST 2008
+
+This bugfix release fixes issues with the installation of headers and
+pkgconfig files.
+
+
+libmpeg2-0.5.0 Fri Jun 11 23:42:12 CET 2008
 
 This release brings libmpeg2 up to date with recent contributions,
 compilers and systems.

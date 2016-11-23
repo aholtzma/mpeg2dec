@@ -12,4 +12,4 @@ corrupt_mpeg2_SOURCES = corrupt_mpeg2.c getopt.c
 
 man_MANS = mpeg2dec.1 extract_mpeg2.1
 
-EXTRA_DIST = configure.incl getopt.h gettimeofday.h $(man_MANS)
+EXTRA_DIST = getopt.h gettimeofday.h $(man_MANS)

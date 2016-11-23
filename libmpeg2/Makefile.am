@@ -21,4 +21,4 @@ libmpeg2arch_la_CFLAGS = $(OPT_CFLAGS) $(ARCH_OPT_CFLAGS) $(LIBMPEG2_CFLAGS)
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libmpeg2.pc
 
-EXTRA_DIST = configure.incl vlc.h mpeg2_internal.h
+EXTRA_DIST = vlc.h mpeg2_internal.h

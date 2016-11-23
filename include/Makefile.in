@@ -33,11 +33,12 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 subdir = include
-DIST_COMMON = $(pkginclude_HEADERS) $(srcdir)/Makefile.am \
+DIST_COMMON = $(libinclude_HEADERS) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
-	$(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/cflags.m4 \
+	$(top_srcdir)/m4/inttypes.m4 $(top_srcdir)/m4/keywords.m4 \
+	$(top_srcdir)/m4/nonpic.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -51,9 +52,9 @@ am__vpath_adj = case $$p in \
     *) f=$$p;; \
   esac;
 am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
-am__installdirs = "$(DESTDIR)$(pkgincludedir)"
-pkgincludeHEADERS_INSTALL = $(INSTALL_HEADER)
-HEADERS = $(pkginclude_HEADERS)
+am__installdirs = "$(DESTDIR)$(libincludedir)"
+libincludeHEADERS_INSTALL = $(INSTALL_HEADER)
+HEADERS = $(libinclude_HEADERS)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -185,7 +186,8 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-pkginclude_HEADERS = mpeg2.h mpeg2convert.h
+libincludedir = $(includedir)/mpeg2dec
+libinclude_HEADERS = mpeg2.h mpeg2convert.h
 EXTRA_DIST = video_out.h mmx.h alpha_asm.h vis.h attributes.h tendra.h
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
@@ -243,22 +245,22 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
-install-pkgincludeHEADERS: $(pkginclude_HEADERS)
+install-libincludeHEADERS: $(libinclude_HEADERS)
 	@$(NORMAL_INSTALL)
-	test -z "$(pkgincludedir)" || $(MKDIR_P) "$(DESTDIR)$(pkgincludedir)"
-	@list='$(pkginclude_HEADERS)'; for p in $$list; do \
+	test -z "$(libincludedir)" || $(MKDIR_P) "$(DESTDIR)$(libincludedir)"
+	@list='$(libinclude_HEADERS)'; for p in $$list; do \
 	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
 	  f=$(am__strip_dir) \
-	  echo " $(pkgincludeHEADERS_INSTALL) '$$d$$p' '$(DESTDIR)$(pkgincludedir)/$$f'"; \
-	  $(pkgincludeHEADERS_INSTALL) "$$d$$p" "$(DESTDIR)$(pkgincludedir)/$$f"; \
+	  echo " $(libincludeHEADERS_INSTALL) '$$d$$p' '$(DESTDIR)$(libincludedir)/$$f'"; \
+	  $(libincludeHEADERS_INSTALL) "$$d$$p" "$(DESTDIR)$(libincludedir)/$$f"; \
 	done
 
-uninstall-pkgincludeHEADERS:
+uninstall-libincludeHEADERS:
 	@$(NORMAL_UNINSTALL)
-	@list='$(pkginclude_HEADERS)'; for p in $$list; do \
+	@list='$(libinclude_HEADERS)'; for p in $$list; do \
 	  f=$(am__strip_dir) \
-	  echo " rm -f '$(DESTDIR)$(pkgincludedir)/$$f'"; \
-	  rm -f "$(DESTDIR)$(pkgincludedir)/$$f"; \
+	  echo " rm -f '$(DESTDIR)$(libincludedir)/$$f'"; \
+	  rm -f "$(DESTDIR)$(libincludedir)/$$f"; \
 	done
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
@@ -338,7 +340,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(HEADERS) config.h
 installdirs:
-	for dir in "$(DESTDIR)$(pkgincludedir)"; do \
+	for dir in "$(DESTDIR)$(libincludedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -383,7 +385,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-pkgincludeHEADERS
+install-data-am: install-libincludeHEADERS
 
 install-dvi: install-dvi-am
 
@@ -417,7 +419,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-pkgincludeHEADERS
+uninstall-am: uninstall-libincludeHEADERS
 
 .MAKE: install-am install-strip
 
@@ -427,12 +429,12 @@ uninstall-am: uninstall-pkgincludeHEADERS
 	html-am info info-am install install-am install-data \
 	install-data-am install-dvi install-dvi-am install-exec \
 	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-pkgincludeHEADERS install-ps install-ps-am \
+	install-info-am install-libincludeHEADERS install-man \
+	install-pdf install-pdf-am install-ps install-ps-am \
 	install-strip installcheck installcheck-am installdirs \
 	maintainer-clean maintainer-clean-generic mostlyclean \
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags uninstall uninstall-am uninstall-pkgincludeHEADERS
+	tags uninstall uninstall-am uninstall-libincludeHEADERS
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

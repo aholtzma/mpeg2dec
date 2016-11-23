@@ -4,7 +4,7 @@ libdir=@libdir@
 includedir=@includedir@
 
 Name: libmpeg2
-Description: A decoding library for MPEG-1 and MPEG-2 streams.
+Description: MPEG-1 and MPEG-2 stream decoding library
 Version: @VERSION@
 Libs: -L${libdir} -lmpeg2
-Cflags: -I${includedir}/@PACKAGE@
+Cflags: -I${includedir}/mpeg2dec
