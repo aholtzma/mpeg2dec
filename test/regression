@@ -1,0 +1,25 @@
+#!/bin/sh
+
+testfile=tests
+if [ $# -ge 1 ]; then testfile=$1; fi
+
+basedir=`head -n 1 $testfile | awk '{print $2}'`
+basedir=`cd $basedir;pwd`
+dirs=`awk -F '#' '{print $1}' $testfile`
+
+# choose between c_md5 and mmx_md5 (based on the idct you use)
+md5=mmx.md5
+if [ $# -ge 2 ]; then md5=$2.md5; fi
+
+mkdir data
+cd data
+
+for dir in $dirs; do
+    echo $dir
+    ../../src/mpeg2dec -o md5 $basedir/$dir/stream >/dev/null 2>&1
+    diff -u md5 $basedir/$dir/$md5
+    rm -f md5 core
+done
+
+cd ..
+rmdir data

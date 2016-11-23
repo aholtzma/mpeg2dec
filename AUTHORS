@@ -1,0 +1,26 @@
+Aaron Holtzman <aholtzma@ess.engr.uvic.ca> started the project and
+	made the initial working implementation.
+
+Michel Lespinasse <walken@zoy.org> did large changes for speed and
+	mpeg conformance and is the current maintainer.
+
+Other contributors include :
+
+	Bruno Barreyra <barreyra@ufl.edu> - build fixes
+	Colin Cross <colin@mit.edu> - 3dfx output code
+	Stephen Crowley <stephenc@dns2.digitalpassage.com> - build fixes
+	Didier Gautheron <dgautheron@magic.fr> - bug fixes
+	Ryan C. Gordon <icculus@lokigames.com> - SDL support
+	Peter Gubanov <peter@elecard.net.ru> - MMX IDCT scheduling
+	H}kan Hjort <d95hjort@dtek.chalmers.se> - Solaris fixes, mlib code
+	Gerd Knorr <kraxel@goldbach.in-berlin.de> - Xv support
+	David I. Lehn <dlehn@vt.edu> - motion_comp mmx code
+	Olie Lho <ollie@sis.com.tw> - MMX yuv2rgb routine
+	Rick Niles <niles@scyld.com> - build fixes
+	Real Ouellet <realo@sympatico.ca> - g200 fixes
+	Bajusz Peter <hyp-x@inf.bme.hu> - motion comp fixes
+	Franck Sicard <Franck.Sicard@miniruth.solsoft.fr> - x11 fixes
+	Brion Vibber <brion@gizmo.usc.edu> - x11 fixes
+	Fredrik Vraalsen <vraalsen@cs.uiuc.edu> - general hackage and stuff
+
+(let me know if I forgot anyone)

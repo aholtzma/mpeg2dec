@@ -1,0 +1,8 @@
+mpeg2dec-0.1.7 Thu Nov  2 21:38:33 PST 2000
+
+First release since march ! Lots of new features : improved
+performance, mpeg-1 and mpeg-2 support, integrated demuxer, standards
+compliance.
+
+The major missing feature is mpeg-2 field pictures, this is planned
+for mpeg2dec-0.2.0

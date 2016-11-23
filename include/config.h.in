@@ -1,0 +1,54 @@
+/* include/config.h.in.  Generated automatically from configure.in by autoheader.  */
+
+/* Define to empty if the keyword does not work.  */
+#undef const
+
+/* Define as __inline if that's what the C compiler calls it.  */
+#undef inline
+
+/* Define if your processor stores words with the most significant
+   byte first (like Motorola and SPARC, unlike Intel and VAX).  */
+#undef WORDS_BIGENDIAN
+
+/* Define if the X Window System is missing or not being used.  */
+#undef X_DISPLAY_MISSING
+
+/* Name of package */
+#undef PACKAGE
+
+/* Version number of package */
+#undef VERSION
+
+/* x86 architecture */
+#undef ARCH_X86
+
+/* maximum supported data alignment */
+#undef ATTRIBUTE_ALIGNED_MAX
+
+/* libmpeg2 mlib support */
+#undef LIBMPEG2_MLIB
+
+/* libvo X11 support */
+#undef LIBVO_X11
+
+/* libvo Xshm support */
+#undef LIBVO_XSHM
+
+/* libvo XV support */
+#undef LIBVO_XV
+
+/* libvo SDL support */
+#undef LIBVO_SDL
+
+/* libvo mlib support */
+#undef LIBVO_MLIB
+
+/* libvo MGA support */
+#undef LIBVO_MGA
+
+/* libvo 3dfx support */
+#undef LIBVO_3DFX
+
+/* libvo syncfb support */
+#undef LIBVO_SYNCFB
+

@@ -1,0 +1,49 @@
+mpeg2dec-0.1.7 Thu Nov  2 21:38:33 PST 2000
+-fix the solaris mlib code back bup
+-added Xv support
+-major cruft removal
+-cleanup on motion_comp
+-remove mb_buffer goofiness
+-new yuv2rgb code
+-SDL display code added
+-faster motion_comp_c code
+-moved codec, display code into separate libraries
+-test suite
+-lots of conformance fixes
+-rewrite of the parsing code
+-MMX/SSE runtime detection and support
+-new configuration code
+
+mpeg2dec-0.1.6 Wed Mar 22 09:45:44 PST 2000
+-enhanced g200 
+-solaris fixes
+-inlined, rewritten bitstream code (much faster now)
+-moved colorspace conversion code into yuv2rgb.c
+
+mpeg2dec-0.1.5  Mon Dec 13 23:08:43 EST 1999
+-numerous bugfixes to mga_vid and x11 displays.
+-fix clipping in motion_comp
+-fix interlaced macroblocks in frame pictures
+-add preliminary MMX support
+
+mpeg2dec-0.1.4  Fri Dec 10 00:28:43 EST 1999
+-New bitstream interface
+-fixed screwy first macroblock
+-fixed mga_vid build problems
+-fixed pale x11 output
+
+mpeg2dec-0.1.3 Mon Dec  6 19:18:57 EST 1999
+-fixed Invalid macroblock type bug.
+-fixed Makefile for mga_vid
+
+mpeg2dec-0.1.2 Mon Dec  6 19:18:57 EST 1999
+-fixed AC coefficient bug. Output looks pretty
+ now.
+-inv_quantize code moved into parse.
+
+mpeg2dec-0.1.1 Sun Dec  5 19:18:57 EST 1999
+-added X11 display interface
+-fixed minor bug mga_vid init bug
+
+mpeg2dec-0.1.0 Sun Dec  5 01:18:57 EST 1999
+-First release
